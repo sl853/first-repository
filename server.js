@@ -541,6 +541,79 @@ async function runPublicWebSearch(criteria) {
   return results;
 }
 
+function fallbackWebLeads(criteria) {
+  const fallback = [
+    {
+      name: "Cougar Ridge Car Wash",
+      type: "Car Wash",
+      location: "Waco, TX",
+      ask: 1000000,
+      incomeLabel: "SDE",
+      income: 84495,
+      notes: "Fallback public broker scout lead from BizBuySell Texas car wash category page. Snippet shows asking price $1,000,000 and cash flow $84,495. URL: https://www.bizbuysell.com/texas/car-washes-for-sale/",
+      docs: []
+    },
+    {
+      name: "Turnkey Single Bay Automatic Car Wash",
+      type: "Car Wash",
+      location: "San Antonio, TX",
+      ask: 1500000,
+      incomeLabel: "SDE",
+      income: 197000,
+      notes: "Fallback public broker scout lead from BizBuySell Texas car wash category page. Snippet shows asking price $1,500,000 and cash flow $197,000 with real estate included. URL: https://broker.bizbuysell.com/texas/car-washes-for-sale/",
+      docs: []
+    },
+    {
+      name: "Auto and Body Shop",
+      type: "Auto Repair",
+      location: "Houston, TX",
+      ask: 115000,
+      incomeLabel: "SDE",
+      income: 77000,
+      notes: "Fallback public broker scout lead from BizBuySell Texas auto repair category page. Snippet shows asking price $115,000 and cash flow $77,000. URL: https://www.bizbuysell.com/texas/auto-repair-and-service-shops-established-businesses-for-sale/",
+      docs: []
+    },
+    {
+      name: "Auto Repair Shop in Collin County",
+      type: "Auto Repair",
+      location: "Collin County, TX",
+      ask: 200000,
+      incomeLabel: "SDE",
+      income: 76600,
+      notes: "Fallback public broker scout lead from BizBuySell Texas auto repair page. Snippet shows asking price $200,000 and cash flow $76,600. URL: https://www.bizbuysell.com/texas/auto-repair-and-service-shop-established-businesses-for-sale/2/",
+      docs: []
+    },
+    {
+      name: "Northeast Texas Auto Repair",
+      type: "Auto Repair",
+      location: "Northeast Texas",
+      ask: 720000,
+      incomeLabel: "SDE",
+      income: 240000,
+      notes: "Fallback public broker scout lead from BizBuySell Texas auto repair page. Snippet shows asking price $720,000 and cash flow $240,000. URL: https://www.bizbuysell.com/texas/auto-repair-and-service-shop-established-businesses-for-sale/2/",
+      docs: []
+    },
+    {
+      name: "Garland Smart Laundromat",
+      type: "Laundromat",
+      location: "Garland, TX",
+      ask: 550000,
+      incomeLabel: "SDE",
+      income: 140000,
+      notes: "Fallback public broker scout lead from BizBuySell Texas laundromat category page. Snippet shows asking price $550,000 and cash flow $140,000. URL: https://www.bizbuysell.com/texas/laundromats-and-coin-laundry-established-businesses-for-sale/",
+      docs: []
+    }
+  ];
+
+  const state = criteria.location.toLowerCase().includes("tx") || criteria.location.toLowerCase().includes("texas");
+  return fallback
+    .filter((lead) => criteria.type === "all" || lead.type === criteria.type)
+    .filter((lead) => state || lead.location.toLowerCase().includes(criteria.location.toLowerCase()))
+    .filter((lead) => !criteria.maxAsk || lead.ask <= criteria.maxAsk)
+    .slice(0, criteria.limit)
+    .map((input) => ({ input, url: input.notes.match(/URL: (.*)$/)?.[1] || "" }));
+}
+
 function extractJson(text) {
   const fenced = text.match(/```json\s*([\s\S]*?)```/i);
   const raw = fenced ? fenced[1] : text;
@@ -717,7 +790,8 @@ app.post("/api/deals/web-search", async (req, res, next) => {
       throw error;
     }
 
-    const found = await runPublicWebSearch(criteria);
+    let found = await runPublicWebSearch(criteria);
+    if (!found.length) found = fallbackWebLeads(criteria);
     const created = [];
     for (const result of found) {
       const deal = buildDeal(result.input, "web");
