@@ -797,7 +797,7 @@
 
     const backendHostnames = ["localhost", "127.0.0.1", "::1"];
     const apiBase = backendHostnames.includes(window.location.hostname) ? "" : null;
-    const savedDeals = JSON.parse(localStorage.getItem("dealRadarDeals") || "[]");
+    const savedDeals = loadLocalDeals();
     let deals = [...savedDeals];
 
     const categoryCopy = {
@@ -958,7 +958,28 @@
     function saveUserDeals() {
       if (apiBase !== null) return;
       const userDeals = deals.filter((deal) => deal.source === "manual");
-      localStorage.setItem("dealRadarDeals", JSON.stringify(userDeals));
+      saveLocalDeals(userDeals);
+    }
+
+    function loadLocalDeals() {
+      try {
+        const storage = window.localStorage;
+        if (!storage) return [];
+        return JSON.parse(storage.getItem("dealRadarDeals") || "[]");
+      } catch (error) {
+        console.warn("Browser storage unavailable; using empty local deal list.", error);
+        return [];
+      }
+    }
+
+    function saveLocalDeals(userDeals) {
+      try {
+        const storage = window.localStorage;
+        if (!storage) return;
+        storage.setItem("dealRadarDeals", JSON.stringify(userDeals));
+      } catch (error) {
+        console.warn("Browser storage unavailable; deal was not saved locally.", error);
+      }
     }
 
     function resetFilters() {
