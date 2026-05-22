@@ -217,10 +217,14 @@ function fromRow(row) {
 function seedSamples() {
   const count = db.prepare("SELECT COUNT(*) AS count FROM deals").get().count;
   if (count > 0) return;
-  const seed = db.transaction(() => {
+  db.exec("BEGIN");
+  try {
     for (const deal of sampleDeals) insertDeal.run(...toRow(deal));
-  });
-  seed();
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
 }
 
 function parseDocs(docs) {
@@ -395,10 +399,14 @@ app.post("/api/deals/csv", (req, res, next) => {
   try {
     const rows = parseCsv(String(req.body || ""));
     const created = rows.map((row) => buildDeal(row, "csv"));
-    const save = db.transaction(() => {
+    db.exec("BEGIN");
+    try {
       for (const deal of created) insertDeal.run(...toRow(deal));
-    });
-    save();
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
     res.status(201).json({ deals: created });
   } catch (error) {
     next(error);
