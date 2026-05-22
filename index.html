@@ -813,7 +813,7 @@
     const compactCurrency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
     let activeCategory = "all";
     let activeQuickFilter = "all";
-    let selectedId = deals[0].id;
+    let selectedId = deals[0]?.id;
 
     const sectionsEl = document.getElementById("sections");
     const emptyEl = document.getElementById("empty-state");
