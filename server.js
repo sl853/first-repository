@@ -1,14 +1,18 @@
 import express from "express";
 import multer from "multer";
-import { DatabaseSync } from "node:sqlite";
+import pg from "pg";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+const { Pool } = pg;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, "data");
 const dbPath = join(dataDir, "deal-radar.sqlite");
 const port = Number(process.env.PORT || 3000);
+const databaseUrl = process.env.DATABASE_URL;
+const usePostgres = Boolean(databaseUrl);
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 12 * 1024 * 1024 }
@@ -16,8 +20,11 @@ const upload = multer({
 
 if (!existsSync(dataDir)) mkdirSync(dataDir);
 
-const db = new DatabaseSync(dbPath);
-db.exec(`
+let db;
+let pool;
+let insertDeal;
+
+const createTableSql = `
   CREATE TABLE IF NOT EXISTS deals (
     id TEXT PRIMARY KEY,
     source TEXT NOT NULL,
@@ -37,9 +44,28 @@ db.exec(`
     reasons TEXT NOT NULL,
     missing TEXT NOT NULL,
     memo TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
-`);
+`;
+
+if (usePostgres) {
+  pool = new Pool({
+    connectionString: databaseUrl,
+    ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }
+  });
+  await pool.query(createTableSql);
+} else {
+  const { DatabaseSync } = await import("node:sqlite");
+  db = new DatabaseSync(dbPath);
+  db.exec(createTableSql);
+  insertDeal = db.prepare(`
+    INSERT OR REPLACE INTO deals (
+      id, source, name, type, location, ask, income_label, income, metric_label,
+      metric, score, confidence, verified, summary, tags, reasons, missing, memo
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+}
 
 const sampleDeals = [
   {
@@ -236,14 +262,6 @@ const sampleDeals = [
   }
 ];
 
-const insertDeal = db.prepare(`
-  INSERT OR REPLACE INTO deals (
-    id, source, name, type, location, ask, income_label, income, metric_label,
-    metric, score, confidence, verified, summary, tags, reasons, missing, memo
-  )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-
 function toRow(deal) {
   return [
     deal.id,
@@ -291,8 +309,72 @@ function fromRow(row) {
   };
 }
 
-function seedSamples() {
+async function insertDealRecord(deal) {
+  const values = toRow(deal);
+  if (usePostgres) {
+    await pool.query(
+      `
+        INSERT INTO deals (
+          id, source, name, type, location, ask, income_label, income, metric_label,
+          metric, score, confidence, verified, summary, tags, reasons, missing, memo
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        ON CONFLICT (id) DO UPDATE SET
+          source = EXCLUDED.source,
+          name = EXCLUDED.name,
+          type = EXCLUDED.type,
+          location = EXCLUDED.location,
+          ask = EXCLUDED.ask,
+          income_label = EXCLUDED.income_label,
+          income = EXCLUDED.income,
+          metric_label = EXCLUDED.metric_label,
+          metric = EXCLUDED.metric,
+          score = EXCLUDED.score,
+          confidence = EXCLUDED.confidence,
+          verified = EXCLUDED.verified,
+          summary = EXCLUDED.summary,
+          tags = EXCLUDED.tags,
+          reasons = EXCLUDED.reasons,
+          missing = EXCLUDED.missing,
+          memo = EXCLUDED.memo
+      `,
+      values
+    );
+    return;
+  }
+  insertDeal.run(...values);
+}
+
+async function allDealRows() {
+  if (usePostgres) {
+    const result = await pool.query("SELECT * FROM deals ORDER BY created_at DESC, score DESC");
+    return result.rows;
+  }
+  return db.prepare("SELECT * FROM deals ORDER BY created_at DESC, score DESC").all();
+}
+
+async function dealRowById(id) {
+  if (usePostgres) {
+    const result = await pool.query("SELECT * FROM deals WHERE id = $1", [id]);
+    return result.rows[0];
+  }
+  return db.prepare("SELECT * FROM deals WHERE id = ?").get(id);
+}
+
+async function dealRowBySummaryUrl(url) {
+  if (usePostgres) {
+    const result = await pool.query("SELECT * FROM deals WHERE summary LIKE $1 LIMIT 1", [`%${url}%`]);
+    return result.rows[0];
+  }
+  return db.prepare("SELECT * FROM deals WHERE summary LIKE ?").get(`%${url}%`);
+}
+
+async function seedSamples() {
   if (process.env.SEED_SAMPLE_DEALS !== "true") return;
+  if (usePostgres) {
+    for (const deal of sampleDeals) await insertDealRecord(deal);
+    return;
+  }
   db.exec("BEGIN");
   try {
     for (const deal of sampleDeals) insertDeal.run(...toRow(deal));
@@ -694,56 +776,57 @@ async function extractDealFromImage(file) {
   return normalizeExtractedDeal(extractJson(outputText));
 }
 
-seedSamples();
+await seedSamples();
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(express.text({ type: ["text/csv", "text/plain"], limit: "2mb" }));
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, database: dbPath });
+  res.json({ ok: true, database: usePostgres ? "postgres" : dbPath });
 });
 
-app.get("/api/deals", (req, res) => {
-  const q = String(req.query.q || "").toLowerCase();
-  const type = String(req.query.type || "");
-  const rows = db.prepare("SELECT * FROM deals ORDER BY created_at DESC, score DESC").all();
-  const deals = rows.map(fromRow).filter((deal) => {
-    const matchesType = !type || type === "all" || deal.type === type;
-    const haystack = [deal.name, deal.type, deal.location, deal.metric, deal.summary, ...deal.tags, ...deal.reasons, ...deal.missing].join(" ").toLowerCase();
-    return matchesType && (!q || haystack.includes(q));
-  });
-  res.json({ deals });
+app.get("/api/deals", async (req, res, next) => {
+  try {
+    const q = String(req.query.q || "").toLowerCase();
+    const type = String(req.query.type || "");
+    const rows = await allDealRows();
+    const deals = rows.map(fromRow).filter((deal) => {
+      const matchesType = !type || type === "all" || deal.type === type;
+      const haystack = [deal.name, deal.type, deal.location, deal.metric, deal.summary, ...deal.tags, ...deal.reasons, ...deal.missing].join(" ").toLowerCase();
+      return matchesType && (!q || haystack.includes(q));
+    });
+    res.json({ deals });
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.get("/api/deals/:id", (req, res) => {
-  const row = db.prepare("SELECT * FROM deals WHERE id = ?").get(req.params.id);
-  if (!row) return res.status(404).json({ error: "Deal not found." });
-  res.json({ deal: fromRow(row) });
+app.get("/api/deals/:id", async (req, res, next) => {
+  try {
+    const row = await dealRowById(req.params.id);
+    if (!row) return res.status(404).json({ error: "Deal not found." });
+    res.json({ deal: fromRow(row) });
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.post("/api/deals", (req, res, next) => {
+app.post("/api/deals", async (req, res, next) => {
   try {
     const deal = buildDeal(req.body, req.body.source || "manual");
-    insertDeal.run(...toRow(deal));
+    await insertDealRecord(deal);
     res.status(201).json({ deal });
   } catch (error) {
     next(error);
   }
 });
 
-app.post("/api/deals/csv", (req, res, next) => {
+app.post("/api/deals/csv", async (req, res, next) => {
   try {
     const rows = parseCsv(String(req.body || ""));
     const created = rows.map((row) => buildDeal(row, "csv"));
-    db.exec("BEGIN");
-    try {
-      for (const deal of created) insertDeal.run(...toRow(deal));
-      db.exec("COMMIT");
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
+    for (const deal of created) await insertDealRecord(deal);
     res.status(201).json({ deals: created });
   } catch (error) {
     next(error);
@@ -770,7 +853,7 @@ app.post("/api/deals/extract-image", upload.single("image"), async (req, res, ne
       "Fields were extracted from an uploaded screenshot or photo and should be verified against source documents.",
       ...deal.reasons
     ];
-    insertDeal.run(...toRow(deal));
+    await insertDealRecord(deal);
     res.status(201).json({ extracted, deal });
   } catch (error) {
     next(error);
@@ -797,12 +880,12 @@ app.post("/api/deals/web-search", async (req, res, next) => {
     const existingDeals = [];
     for (const result of found) {
       const deal = buildDeal(result.input, "web");
-      const existing = db.prepare("SELECT * FROM deals WHERE summary LIKE ?").get(`%${result.url}%`);
+      const existing = await dealRowBySummaryUrl(result.url);
       if (existing) {
         existingDeals.push(fromRow(existing));
         continue;
       }
-      insertDeal.run(...toRow(deal));
+      await insertDealRecord(deal);
       created.push(deal);
     }
     res.status(201).json({

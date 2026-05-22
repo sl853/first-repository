@@ -573,7 +573,7 @@
       <div class="topbar">
         <div class="headline">
           <h1>Verified interpretation for messy listings.</h1>
-          <p>Search sample listings, open a deal, and see the underwriting logic, confidence level, and missing-data checklist that turns raw opportunities into a decision queue.</p>
+          <p>Search saved listings, open a deal, and see the underwriting logic, confidence level, and missing-data checklist that turns raw opportunities into a decision queue.</p>
         </div>
         <div class="status-pill" id="backend-status">Checking backend</div>
       </div>
@@ -795,8 +795,8 @@
       { id: "railspur-warehouse", name: "Railspur Warehouse", type: "Industrial", location: "Kansas City, MO", ask: 2400000, incomeLabel: "NOI", income: 171000, metricLabel: "Cap", metric: "7.1%", score: 85, confidence: 74, verified: false, summary: "Functional loading and infill location are positives; roof reserve should be modeled.", tags: ["Infill", "Roof Reserve", "Industrial"], reasons: ["Going-in yield is acceptable for a functional infill warehouse.", "Physical plant risk is manageable if roof reserve is priced correctly.", "Location and loading features support tenant demand."], missing: ["Roof quote", "Phase I environmental", "Lease abstracts", "CAM reconciliation"], memo: "Solid industrial candidate with a specific diligence question: roof cost. Price adjustment should depend on inspection outcome." }
     ];
 
-    const backendHostnames = ["localhost", "127.0.0.1", "::1"];
-    const apiBase = backendHostnames.includes(window.location.hostname) ? "" : null;
+    const staticPreviewHosts = ["sl853.github.io"];
+    const apiBase = window.location.protocol === "file:" || staticPreviewHosts.includes(window.location.hostname) ? null : "";
     const savedDeals = loadLocalDeals();
     let deals = [...savedDeals];
 
@@ -1136,7 +1136,7 @@
         backendStatus.textContent = "Static demo mode";
         backendOnlyButtons.forEach((button) => {
           button.disabled = true;
-          button.title = "Run the local backend and open http://localhost:3000 to use this.";
+          button.title = "Open the backend-hosted app to use this.";
         });
         return false;
       }
@@ -1160,7 +1160,7 @@
       const text = await response.text();
       if (!contentType.includes("application/json")) {
         const preview = text.slice(0, 80).replace(/\s+/g, " ");
-        throw new Error(`Expected JSON from backend, but got ${contentType || "unknown content"}. Open http://localhost:3000 and restart npm start if needed. Preview: ${preview}`);
+        throw new Error(`Expected JSON from backend, but got ${contentType || "unknown content"}. Make sure you are using the backend-hosted app URL. Preview: ${preview}`);
       }
       try {
         return JSON.parse(text);
@@ -1195,7 +1195,7 @@
     }
 
     async function extractImageViaApi(form) {
-      if (apiBase === null) throw new Error("Screenshot extraction requires the localhost backend. Run npm start and open http://localhost:3000.");
+      if (apiBase === null) throw new Error("Screenshot extraction requires the backend-hosted app.");
       const response = await fetch("/api/deals/extract-image", {
         method: "POST",
         body: new FormData(form)
@@ -1206,7 +1206,7 @@
     }
 
     async function runWebSearchViaApi(formData) {
-      if (apiBase === null) throw new Error("Web search requires the localhost backend. Run npm start and open http://localhost:3000.");
+      if (apiBase === null) throw new Error("Web search requires the backend-hosted app.");
       const payload = {
         type: formData.get("type"),
         location: formData.get("location"),
