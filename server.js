@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import { DatabaseSync } from "node:sqlite";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -8,6 +9,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, "data");
 const dbPath = join(dataDir, "deal-radar.sqlite");
 const port = Number(process.env.PORT || 3000);
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 12 * 1024 * 1024 }
+});
 
 if (!existsSync(dataDir)) mkdirSync(dataDir);
 
@@ -110,6 +115,30 @@ const sampleDeals = [
     memo: "Promising hospitality repositioning deal. The investment case depends on disciplined renovation scope and reliable trailing financials."
   },
   {
+    id: "desert-suites",
+    source: "sample",
+    name: "Desert Suites",
+    type: "Hotel",
+    location: "Las Cruces, NM",
+    ask: 2900000,
+    incomeLabel: "Keys",
+    income: 44,
+    metricLabel: "DSCR",
+    metric: "1.18x",
+    score: 74,
+    confidence: 62,
+    verified: false,
+    summary: "Attractive basis, but thin debt coverage requires conservative leverage assumptions.",
+    tags: ["Financing Fit", "Basis"],
+    reasons: [
+      "Purchase basis is reasonable, but current cash flow leaves limited room for debt-service error.",
+      "Smaller key count increases management sensitivity.",
+      "Upside exists, but the financing case needs tighter documentation."
+    ],
+    missing: ["Lender quote", "ADR history", "Capex budget", "Insurance quote", "Tax reassessment estimate"],
+    memo: "Watchlist hotel deal. Do not advance without a financing model, insurance quote, and verified operating history."
+  },
+  {
     id: "northline-spirits",
     source: "sample",
     name: "Northline Spirits",
@@ -134,6 +163,30 @@ const sampleDeals = [
     memo: "High-priority retail cash-flow deal with good earnings support. Verify inventory quality and license transfer before submitting final terms."
   },
   {
+    id: "canyon-beverage",
+    source: "sample",
+    name: "Canyon Beverage Mart",
+    type: "Liquor Store",
+    location: "Reno, NV",
+    ask: 930000,
+    incomeLabel: "SDE",
+    income: 176000,
+    metricLabel: "Multiple",
+    metric: "5.3x",
+    score: 80,
+    confidence: 68,
+    verified: false,
+    summary: "Consistent sales, but diligence should focus on license timing and shrink controls.",
+    tags: ["License", "Shrink", "Inventory"],
+    reasons: [
+      "Headline multiple is acceptable if add-backs are real.",
+      "Store has stable demand signals but weaker documentation quality.",
+      "Shrink and inventory controls materially affect the true earnings base."
+    ],
+    missing: ["Add-back support", "Shrink report", "License transfer approval", "Vendor concentration"],
+    memo: "Useful candidate for diligence, not yet a conviction deal. The next step is validating SDE and inventory control quality."
+  },
+  {
     id: "east-loop-flex",
     source: "sample",
     name: "East Loop Flex Park",
@@ -156,6 +209,30 @@ const sampleDeals = [
     ],
     missing: ["Environmental report", "Roof inspection", "Tenant estoppels"],
     memo: "Best-in-pipeline industrial opportunity. Advance to full underwriting and request third-party diligence reports."
+  },
+  {
+    id: "railspur-warehouse",
+    source: "sample",
+    name: "Railspur Warehouse",
+    type: "Industrial",
+    location: "Kansas City, MO",
+    ask: 2400000,
+    incomeLabel: "NOI",
+    income: 171000,
+    metricLabel: "Cap",
+    metric: "7.1%",
+    score: 85,
+    confidence: 74,
+    verified: false,
+    summary: "Functional loading and infill location are positives; roof reserve should be modeled.",
+    tags: ["Infill", "Roof Reserve", "Industrial"],
+    reasons: [
+      "Going-in yield is acceptable for a functional infill warehouse.",
+      "Physical plant risk is manageable if roof reserve is priced correctly.",
+      "Location and loading features support tenant demand."
+    ],
+    missing: ["Roof quote", "Phase I environmental", "Lease abstracts", "CAM reconciliation"],
+    memo: "Solid industrial candidate with a specific diligence question: roof cost. Price adjustment should depend on inspection outcome."
   }
 ];
 
@@ -215,8 +292,6 @@ function fromRow(row) {
 }
 
 function seedSamples() {
-  const count = db.prepare("SELECT COUNT(*) AS count FROM deals").get().count;
-  if (count > 0) return;
   db.exec("BEGIN");
   try {
     for (const deal of sampleDeals) insertDeal.run(...toRow(deal));
@@ -356,6 +431,84 @@ function parseCsv(text) {
   });
 }
 
+function extractJson(text) {
+  const fenced = text.match(/```json\s*([\s\S]*?)```/i);
+  const raw = fenced ? fenced[1] : text;
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start === -1 || end === -1) throw new Error("Image extraction did not return JSON.");
+  return JSON.parse(raw.slice(start, end + 1));
+}
+
+function normalizeExtractedDeal(extracted) {
+  const type = String(extracted.type || "Laundromat").trim();
+  return {
+    name: String(extracted.name || "Image Imported Deal").trim(),
+    type: ["Laundromat", "Hotel", "Liquor Store", "Industrial"].includes(type) ? type : "Laundromat",
+    location: String(extracted.location || "Unknown location").trim(),
+    ask: Number(extracted.ask || 1),
+    incomeLabel: String(extracted.incomeLabel || "NOI").trim(),
+    income: Number(extracted.income || 0),
+    notes: String(extracted.notes || "Extracted from uploaded image. Treat all values as unverified until source documents are reviewed."),
+    docs: parseDocs(extracted.docs)
+  };
+}
+
+async function extractDealFromImage(file) {
+  if (!process.env.OPENAI_API_KEY) {
+    const error = new Error("OPENAI_API_KEY is not set. Add it to your environment to enable screenshot extraction.");
+    error.status = 503;
+    throw error;
+  }
+
+  const base64 = file.buffer.toString("base64");
+  const dataUrl = `data:${file.mimetype};base64,${base64}`;
+  const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      input: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: [
+                "Extract an acquisition listing from this screenshot or photo.",
+                "Return only JSON with keys: name, type, location, ask, incomeLabel, income, notes, docs.",
+                "type must be one of Laundromat, Hotel, Liquor Store, Industrial.",
+                "incomeLabel must be one of NOI, SDE, Keys.",
+                "ask and income must be numbers. Use 1 for ask if unknown and 0 for income if unknown.",
+                "docs should be an array using any of: financials, lease, utilities, equipment, taxes, insurance.",
+                "If a field is not visible, infer cautiously and explain uncertainty in notes."
+              ].join(" ")
+            },
+            { type: "input_image", image_url: dataUrl }
+          ]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    const error = new Error(`OpenAI image extraction failed: ${detail}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  const payload = await response.json();
+  const outputText = payload.output_text || payload.output?.flatMap((item) => item.content || []).map((part) => part.text || "").join("\n");
+  if (!outputText) throw new Error("OpenAI image extraction returned no text.");
+  return normalizeExtractedDeal(extractJson(outputText));
+}
+
 seedSamples();
 
 const app = express();
@@ -408,6 +561,33 @@ app.post("/api/deals/csv", (req, res, next) => {
       throw error;
     }
     res.status(201).json({ deals: created });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/deals/extract-image", upload.single("image"), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      const error = new Error("Upload an image file using the image field.");
+      error.status = 400;
+      throw error;
+    }
+    if (!req.file.mimetype.startsWith("image/")) {
+      const error = new Error("Only image uploads are supported.");
+      error.status = 400;
+      throw error;
+    }
+
+    const extracted = await extractDealFromImage(req.file);
+    const deal = buildDeal(extracted, "image");
+    deal.tags = ["Image Import", ...deal.tags.filter((tag) => tag !== "Manual Entry")];
+    deal.reasons = [
+      "Fields were extracted from an uploaded screenshot or photo and should be verified against source documents.",
+      ...deal.reasons
+    ];
+    insertDeal.run(...toRow(deal));
+    res.status(201).json({ extracted, deal });
   } catch (error) {
     next(error);
   }

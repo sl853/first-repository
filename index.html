@@ -203,6 +203,12 @@
       gap: 12px;
       margin-bottom: 24px;
     }
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
     .action-row p {
       margin: 0;
       color: var(--muted);
@@ -522,6 +528,7 @@
       .topbar, .section-header { flex-direction: column; align-items: flex-start; }
       .metrics, .deal-grid { grid-template-columns: 1fr; }
       .action-row { align-items: flex-start; flex-direction: column; }
+      .action-buttons { justify-content: flex-start; }
       .search-panel { grid-template-columns: 1fr; }
       .search-panel button { min-height: 48px; }
       .form-grid, .doc-grid { grid-template-columns: 1fr; }
@@ -575,7 +582,10 @@
       </div>
       <div class="action-row">
         <p>Manual entry is the v1 ingestion path: add a messy listing, generate a score, and see what diligence is missing.</p>
-        <button class="primary-action" id="open-add-deal" type="button">Add Deal</button>
+        <div class="action-buttons">
+          <button class="secondary-action" id="open-image-import" type="button">Upload Screenshot</button>
+          <button class="primary-action" id="open-add-deal" type="button">Add Deal</button>
+        </div>
       </div>
       <section class="metrics" aria-label="Pipeline metrics">
         <div class="metric"><span>Visible Deals</span><strong id="metric-visible">0</strong></div>
@@ -692,6 +702,29 @@
         <div class="form-actions">
           <button class="secondary-action" id="cancel-add-deal" type="button">Cancel</button>
           <button class="primary-action" type="submit">Score Deal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="image-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="image-modal-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="image-modal-title">Upload a Screenshot</h2>
+          <p>Upload a broker screenshot, listing photo, or screen grab. The backend will extract visible fields and create an unverified scored deal.</p>
+        </div>
+        <button class="icon-button" id="close-image-import" type="button" aria-label="Close screenshot upload form">&times;</button>
+      </div>
+      <form class="deal-form" id="image-form">
+        <div class="field">
+          <label for="listing-image">Screenshot or photo</label>
+          <input id="listing-image" name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
+        </div>
+        <div class="memo-box">Requires the backend running on localhost and an <code>OPENAI_API_KEY</code> environment variable. Extracted values are treated as unverified.</div>
+        <div class="form-actions">
+          <button class="secondary-action" id="cancel-image-import" type="button">Cancel</button>
+          <button class="primary-action" type="submit">Extract Deal</button>
         </div>
       </form>
     </div>
@@ -978,6 +1011,17 @@
       document.getElementById("deal-modal").setAttribute("aria-hidden", "true");
     }
 
+    function openImageModal() {
+      document.getElementById("image-modal").classList.add("open");
+      document.getElementById("image-modal").setAttribute("aria-hidden", "false");
+      document.getElementById("listing-image").focus();
+    }
+
+    function closeImageModal() {
+      document.getElementById("image-modal").classList.remove("open");
+      document.getElementById("image-modal").setAttribute("aria-hidden", "true");
+    }
+
     async function loadDealsFromApi() {
       if (apiBase === null) return false;
       try {
@@ -1018,6 +1062,17 @@
       return result.deal;
     }
 
+    async function extractImageViaApi(form) {
+      if (apiBase === null) throw new Error("Screenshot extraction requires the localhost backend. Run npm start and open http://localhost:3000.");
+      const response = await fetch("/api/deals/extract-image", {
+        method: "POST",
+        body: new FormData(form)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not extract listing from image.");
+      return result.deal;
+    }
+
     document.getElementById("search-form").addEventListener("submit", (event) => {
       event.preventDefault();
       renderSections();
@@ -1043,6 +1098,12 @@
     document.getElementById("deal-modal").addEventListener("click", (event) => {
       if (event.target.id === "deal-modal") closeModal();
     });
+    document.getElementById("open-image-import").addEventListener("click", openImageModal);
+    document.getElementById("close-image-import").addEventListener("click", closeImageModal);
+    document.getElementById("cancel-image-import").addEventListener("click", closeImageModal);
+    document.getElementById("image-modal").addEventListener("click", (event) => {
+      if (event.target.id === "image-modal") closeImageModal();
+    });
     document.getElementById("deal-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       const submitButton = event.currentTarget.querySelector("button[type='submit']");
@@ -1062,6 +1123,26 @@
       } finally {
         submitButton.disabled = false;
         submitButton.textContent = "Score Deal";
+      }
+    });
+    document.getElementById("image-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submitButton = event.currentTarget.querySelector("button[type='submit']");
+      submitButton.disabled = true;
+      submitButton.textContent = "Extracting...";
+      try {
+        const deal = await extractImageViaApi(event.currentTarget);
+        deals = [deal, ...deals.filter((item) => item.id !== deal.id)];
+        renderCounts();
+        resetFilters();
+        event.currentTarget.reset();
+        closeImageModal();
+        selectDeal(deal.id);
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Extract Deal";
       }
     });
 
