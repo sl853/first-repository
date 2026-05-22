@@ -292,6 +292,7 @@ function fromRow(row) {
 }
 
 function seedSamples() {
+  if (process.env.SEED_SAMPLE_DEALS !== "true") return;
   db.exec("BEGIN");
   try {
     for (const deal of sampleDeals) insertDeal.run(...toRow(deal));
@@ -625,9 +626,10 @@ function extractJson(text) {
 
 function normalizeExtractedDeal(extracted) {
   const type = String(extracted.type || "Laundromat").trim();
+  const supportedTypes = ["Laundromat", "Hotel", "Car Wash", "Auto Repair", "Liquor Store", "Industrial"];
   return {
     name: String(extracted.name || "Image Imported Deal").trim(),
-    type: ["Laundromat", "Hotel", "Liquor Store", "Industrial"].includes(type) ? type : "Laundromat",
+    type: supportedTypes.includes(type) ? type : "Laundromat",
     location: String(extracted.location || "Unknown location").trim(),
     ask: Number(extracted.ask || 1),
     incomeLabel: String(extracted.incomeLabel || "NOI").trim(),
@@ -780,7 +782,7 @@ app.post("/api/deals/web-search", async (req, res, next) => {
     const criteria = {
       type: String(req.body.type || "all"),
       location: String(req.body.location || "Texas").trim(),
-      maxAsk: Number(req.body.maxAsk || 1500000),
+      maxAsk: Number(req.body.maxAsk) > 0 ? Number(req.body.maxAsk) : null,
       limit: Math.min(12, Math.max(1, Number(req.body.limit || 6)))
     };
     if (!criteria.location) {
@@ -792,14 +794,23 @@ app.post("/api/deals/web-search", async (req, res, next) => {
     let found = await runPublicWebSearch(criteria);
     if (!found.length) found = fallbackWebLeads(criteria);
     const created = [];
+    const existingDeals = [];
     for (const result of found) {
       const deal = buildDeal(result.input, "web");
-      const existing = db.prepare("SELECT id FROM deals WHERE summary LIKE ?").get(`%${result.url}%`);
-      if (existing) continue;
+      const existing = db.prepare("SELECT * FROM deals WHERE summary LIKE ?").get(`%${result.url}%`);
+      if (existing) {
+        existingDeals.push(fromRow(existing));
+        continue;
+      }
       insertDeal.run(...toRow(deal));
       created.push(deal);
     }
-    res.status(201).json({ criteria, count: created.length, deals: created });
+    res.status(201).json({
+      criteria,
+      count: created.length,
+      existingCount: existingDeals.length,
+      deals: [...created, ...existingDeals]
+    });
   } catch (error) {
     next(error);
   }

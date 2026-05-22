@@ -231,6 +231,11 @@
       background: var(--panel);
       color: var(--soft);
     }
+    .primary-action:disabled,
+    .secondary-action:disabled {
+      cursor: not-allowed;
+      opacity: 0.46;
+    }
     .metrics {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -570,7 +575,7 @@
           <h1>Verified interpretation for messy listings.</h1>
           <p>Search sample listings, open a deal, and see the underwriting logic, confidence level, and missing-data checklist that turns raw opportunities into a decision queue.</p>
         </div>
-        <div class="status-pill">Prototype data engine active</div>
+        <div class="status-pill" id="backend-status">Checking backend</div>
       </div>
       <form class="search-panel" id="search-form" aria-label="Search acquisition opportunities">
         <input id="search-input" type="search" placeholder="Search name, city, asset type, cap rate, tags, or missing data">
@@ -762,7 +767,7 @@
           </div>
           <div class="field">
             <label for="web-max-ask">Max asking price</label>
-            <input id="web-max-ask" name="maxAsk" type="number" min="1" step="50000" value="1500000">
+            <input id="web-max-ask" name="maxAsk" type="number" min="0" step="50000" placeholder="No cap">
           </div>
           <div class="field">
             <label for="web-limit">Result limit</label>
@@ -790,9 +795,10 @@
       { id: "railspur-warehouse", name: "Railspur Warehouse", type: "Industrial", location: "Kansas City, MO", ask: 2400000, incomeLabel: "NOI", income: 171000, metricLabel: "Cap", metric: "7.1%", score: 85, confidence: 74, verified: false, summary: "Functional loading and infill location are positives; roof reserve should be modeled.", tags: ["Infill", "Roof Reserve", "Industrial"], reasons: ["Going-in yield is acceptable for a functional infill warehouse.", "Physical plant risk is manageable if roof reserve is priced correctly.", "Location and loading features support tenant demand."], missing: ["Roof quote", "Phase I environmental", "Lease abstracts", "CAM reconciliation"], memo: "Solid industrial candidate with a specific diligence question: roof cost. Price adjustment should depend on inspection outcome." }
     ];
 
-    const apiBase = window.location.protocol === "file:" ? null : "";
+    const backendHostnames = ["localhost", "127.0.0.1", "::1"];
+    const apiBase = backendHostnames.includes(window.location.hostname) ? "" : null;
     const savedDeals = JSON.parse(localStorage.getItem("dealRadarDeals") || "[]");
-    let deals = [...savedDeals, ...sampleDeals];
+    let deals = [...savedDeals];
 
     const categoryCopy = {
       "Laundromat": "Cash-flowing local operators with automation and pickup-delivery upside.",
@@ -812,6 +818,8 @@
     const sectionsEl = document.getElementById("sections");
     const emptyEl = document.getElementById("empty-state");
     const searchInput = document.getElementById("search-input");
+    const backendStatus = document.getElementById("backend-status");
+    const backendOnlyButtons = [document.getElementById("open-web-search"), document.getElementById("open-image-import")];
 
     function scoreClass(value) {
       if (value >= 88) return "high";
@@ -905,6 +913,25 @@
     function selectDeal(id) {
       selectedId = id;
       const deal = deals.find((item) => item.id === id) || deals[0];
+      if (!deal) {
+        document.getElementById("panel-type").textContent = "No Deal Selected";
+        document.getElementById("panel-title").textContent = "No real listings yet";
+        document.getElementById("panel-summary").textContent = "Run a web search, upload a screenshot, or add a deal manually to populate the pipeline.";
+        document.getElementById("panel-score").textContent = "--";
+        document.getElementById("panel-badge").textContent = "Empty";
+        document.getElementById("panel-badge").className = "badge watch";
+        document.getElementById("score-bar").style.setProperty("--value", "0%");
+        document.getElementById("panel-confidence").textContent = "--";
+        document.getElementById("panel-verified").textContent = "No data";
+        document.getElementById("panel-verified").className = "badge watch";
+        document.getElementById("confidence-bar").style.setProperty("--value", "0%");
+        document.getElementById("panel-stats").innerHTML = "";
+        document.getElementById("panel-reasons").innerHTML = "";
+        document.getElementById("panel-missing").innerHTML = "";
+        document.getElementById("panel-memo").textContent = "Real listings will appear here after ingestion.";
+        renderSections();
+        return;
+      }
       document.getElementById("panel-type").textContent = `${deal.type} Underwriting`;
       document.getElementById("panel-title").textContent = deal.name;
       document.getElementById("panel-summary").textContent = `${deal.location} - ${deal.summary}`;
@@ -1084,17 +1111,26 @@
     }
 
     async function loadDealsFromApi() {
-      if (apiBase === null) return false;
+      if (apiBase === null) {
+        backendStatus.textContent = "Static demo mode";
+        backendOnlyButtons.forEach((button) => {
+          button.disabled = true;
+          button.title = "Run the local backend and open http://localhost:3000 to use this.";
+        });
+        return false;
+      }
       try {
         const response = await fetch("/api/deals");
         if (!response.ok) throw new Error("API unavailable");
         const payload = await readJson(response);
         deals = payload.deals;
         selectedId = deals[0]?.id;
+        backendStatus.textContent = "Backend connected";
         return true;
       } catch (error) {
         console.warn("Deal Radar API unavailable; using browser-local data.", error);
-      return false;
+        backendStatus.textContent = "Backend unavailable";
+        return false;
       }
     }
 
@@ -1153,7 +1189,7 @@
       const payload = {
         type: formData.get("type"),
         location: formData.get("location"),
-        maxAsk: Number(formData.get("maxAsk")),
+        maxAsk: formData.get("maxAsk") ? Number(formData.get("maxAsk")) : null,
         limit: Number(formData.get("limit"))
       };
       const response = await fetch("/api/deals/web-search", {
@@ -1271,7 +1307,7 @@
     async function init() {
       await loadDealsFromApi();
       renderCounts();
-      selectDeal(selectedId || deals[0].id);
+      selectDeal(selectedId || deals[0]?.id);
     }
 
     init();
