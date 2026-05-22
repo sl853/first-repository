@@ -1,30 +1,684 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Deal Radar</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal Radar | AI Acquisition Intelligence</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090b10;
+      --panel: #11151d;
+      --panel-soft: #151b25;
+      --line: #242b38;
+      --text: #f4f7fb;
+      --muted: #99a4b5;
+      --soft: #c7d0dc;
+      --green: #45d483;
+      --amber: #f2b84b;
+      --red: #f06f6f;
+      --blue: #5fa8ff;
+      --violet: #a98bff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 0%, rgba(95, 168, 255, 0.12), transparent 32%), var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      border-right: 1px solid var(--line);
+      background: rgba(9, 11, 16, 0.88);
+      padding: 28px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 20px;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      color: #061014;
+      font-weight: 900;
+    }
+
+    .nav-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 0 0 4px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 8px;
+      color: var(--soft);
+      font-size: 14px;
+      transition: background 160ms ease, color 160ms ease;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      background: var(--panel-soft);
+      color: var(--text);
+    }
+
+    .nav-count {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sidebar-card {
+      margin-top: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background: var(--panel);
+    }
+
+    .sidebar-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .sidebar-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    main {
+      padding: 30px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .headline h1 {
+      margin: 0;
+      font-size: clamp(32px, 5vw, 56px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .headline p {
+      max-width: 700px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .status-pill {
+      border: 1px solid rgba(69, 212, 131, 0.32);
+      background: rgba(69, 212, 131, 0.1);
+      color: #aaf0c5;
+      border-radius: 999px;
+      padding: 9px 13px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .search-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(17, 21, 29, 0.86);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+
+    .search-panel input {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: #0b0f16;
+      color: var(--text);
+      padding: 15px 16px;
+      font: inherit;
+      outline: none;
+    }
+
+    .search-panel input:focus {
+      border-color: rgba(95, 168, 255, 0.8);
+    }
+
+    .search-panel button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--text);
+      color: #090b10;
+      padding: 0 22px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 30px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      background: var(--panel);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 28px;
+    }
+
+    .asset-section {
+      margin-top: 34px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .section-header h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .section-header p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .section-header a {
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .deal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .deal-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(21, 27, 37, 0.95), rgba(17, 21, 29, 0.95));
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .deal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .deal-card h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .deal-card .location {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .score {
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .score.high {
+      background: rgba(69, 212, 131, 0.14);
+      color: var(--green);
+    }
+
+    .score.mid {
+      background: rgba(242, 184, 75, 0.14);
+      color: var(--amber);
+    }
+
+    .score.watch {
+      background: rgba(95, 168, 255, 0.14);
+      color: var(--blue);
+    }
+
+    .deal-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .deal-stat {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+
+    .deal-stat span {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .deal-stat strong {
+      font-size: 15px;
+    }
+
+    .insight {
+      margin-top: auto;
+      color: var(--soft);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      padding: 5px 8px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .deal-grid,
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        padding: 20px;
+      }
+
+      .nav-group {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .sidebar-card {
+        margin-top: 0;
+      }
+
+      main {
+        padding: 22px;
+      }
+
+      .topbar,
+      .section-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .search-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .search-panel button {
+        min-height: 48px;
+      }
+
+      .deal-grid,
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
- <body>
-  <h1>Deal Radar</h1>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Deal Radar navigation">
+      <a class="brand" href="#top" aria-label="Deal Radar home">
+        <span class="brand-mark">DR</span>
+        <span>Deal Radar</span>
+      </a>
 
-  <h2>Target Assets</h2>
-  <ul>
-    <li>Laundromats</li>
-    <li>Hotels</li>
-    <li>Liquor Stores</li>
-    <li>Industrial Property</li>
-  </ul>
+      <nav class="nav-group">
+        <p class="nav-label">Workspace</p>
+        <a class="nav-link active" href="#top">Dashboard <span class="nav-count">24</span></a>
+        <a class="nav-link" href="#laundromats">Laundromats <span class="nav-count">6</span></a>
+        <a class="nav-link" href="#hotels">Hotels <span class="nav-count">5</span></a>
+        <a class="nav-link" href="#liquor-stores">Liquor Stores <span class="nav-count">7</span></a>
+        <a class="nav-link" href="#industrial">Industrial <span class="nav-count">6</span></a>
+      </nav>
 
-  <h2>Scoring Priorities</h2>
-  <ul>
-    <li>Lease Quality</li>
-    <li>Value Add Potential</li>
-    <li>Financing Viability</li>
-    <li>Neighborhood Growth</li>
-    <li>Operational Complexity</li>
-  </ul>
+      <nav class="nav-group">
+        <p class="nav-label">Analysis</p>
+        <a class="nav-link" href="#">Underwriting</a>
+        <a class="nav-link" href="#">Market Signals</a>
+        <a class="nav-link" href="#">Financing Fit</a>
+      </nav>
 
-  <p>AI-assisted acquisition intelligence platform.</p>
-</body>
+      <div class="sidebar-card">
+        <strong>AI Signal Engine</strong>
+        <p>Ranking opportunities by income quality, value-add path, local growth, financing viability, and operating complexity.</p>
+      </div>
+    </aside>
+
+    <main id="top">
+      <div class="topbar">
+        <div class="headline">
+          <h1>AI-assisted acquisition intelligence.</h1>
+          <p>Search operating businesses and real estate-backed assets, compare fundamentals, and surface the deals worth underwriting first.</p>
+        </div>
+        <div class="status-pill">Live pipeline scan active</div>
+      </div>
+
+      <form class="search-panel" aria-label="Search acquisition opportunities">
+        <input type="search" placeholder="Search by asset type, city, cap rate, operator notes, or deal signal">
+        <button type="submit">Search Deals</button>
+      </form>
+
+      <section class="metrics" aria-label="Pipeline metrics">
+        <div class="metric"><span>Tracked Deals</span><strong>24</strong></div>
+        <div class="metric"><span>Avg Deal Score</span><strong>84</strong></div>
+        <div class="metric"><span>Capital Needed</span><strong>$8.7M</strong></div>
+        <div class="metric"><span>High Priority</span><strong>9</strong></div>
+      </section>
+
+      <section class="asset-section" id="laundromats">
+        <div class="section-header">
+          <div>
+            <h2>Laundromats</h2>
+            <p>Cash-flowing local operators with automation and pickup-delivery upside.</p>
+          </div>
+          <a href="#">View all</a>
+        </div>
+        <div class="deal-grid">
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>SpinCycle Express</h3><span class="location">Phoenix, AZ</span></div>
+              <span class="score high">92 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$840K</strong></div>
+              <div class="deal-stat"><span>NOI</span><strong>$156K</strong></div>
+              <div class="deal-stat"><span>Cap</span><strong>18.6%</strong></div>
+            </div>
+            <p class="insight">Strong equipment base, below-market wash pricing, and room for unattended hours expansion.</p>
+            <div class="tags"><span class="tag">Lease Quality</span><span class="tag">Automation</span><span class="tag">Value Add</span></div>
+          </article>
+
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Metro Wash House</h3><span class="location">Cleveland, OH</span></div>
+              <span class="score mid">81 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$610K</strong></div>
+              <div class="deal-stat"><span>NOI</span><strong>$98K</strong></div>
+              <div class="deal-stat"><span>Cap</span><strong>16.1%</strong></div>
+            </div>
+            <p class="insight">Durable neighborhood traffic with upside from card readers and wash-dry-fold services.</p>
+            <div class="tags"><span class="tag">Stable Demand</span><span class="tag">Tech Upgrade</span></div>
+          </article>
+
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Harbor Coin Laundry</h3><span class="location">Tampa, FL</span></div>
+              <span class="score watch">76 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$720K</strong></div>
+              <div class="deal-stat"><span>NOI</span><strong>$105K</strong></div>
+              <div class="deal-stat"><span>Cap</span><strong>14.6%</strong></div>
+            </div>
+            <p class="insight">Good volume, but lease renewal and deferred maintenance need diligence before LOI.</p>
+            <div class="tags"><span class="tag">Lease Risk</span><span class="tag">Maintenance</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="asset-section" id="hotels">
+        <div class="section-header">
+          <div>
+            <h2>Hotels</h2>
+            <p>Limited-service assets with rate optimization and renovation repositioning potential.</p>
+          </div>
+          <a href="#">View all</a>
+        </div>
+        <div class="deal-grid">
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Summit Inn Flag Conversion</h3><span class="location">Boise, ID</span></div>
+              <span class="score high">89 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$4.2M</strong></div>
+              <div class="deal-stat"><span>Keys</span><strong>58</strong></div>
+              <div class="deal-stat"><span>RevPAR</span><strong>$82</strong></div>
+            </div>
+            <p class="insight">Rate gap versus comp set suggests repositioning upside after light PIP investment.</p>
+            <div class="tags"><span class="tag">Brand Upside</span><span class="tag">PIP</span><span class="tag">Rate Gap</span></div>
+          </article>
+
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Interstate Lodge</h3><span class="location">Tulsa, OK</span></div>
+              <span class="score mid">83 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$3.6M</strong></div>
+              <div class="deal-stat"><span>Keys</span><strong>72</strong></div>
+              <div class="deal-stat"><span>Occ.</span><strong>68%</strong></div>
+            </div>
+            <p class="insight">Highway demand is steady, with operational lift from revenue management and direct booking.</p>
+            <div class="tags"><span class="tag">Revenue Mgmt</span><span class="tag">Operations</span></div>
+          </article>
+
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Desert Suites</h3><span class="location">Las Cruces, NM</span></div>
+              <span class="score watch">74 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$2.9M</strong></div>
+              <div class="deal-stat"><span>Keys</span><strong>44</strong></div>
+              <div class="deal-stat"><span>DSCR</span><strong>1.18x</strong></div>
+            </div>
+            <p class="insight">Attractive basis, but thin debt coverage requires conservative leverage assumptions.</p>
+            <div class="tags"><span class="tag">Financing Fit</span><span class="tag">Basis</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="asset-section" id="liquor-stores">
+        <div class="section-header">
+          <div>
+            <h2>Liquor Stores</h2>
+            <p>Local retail cash flow with inventory controls, licensing, and margin expansion signals.</p>
+          </div>
+          <a href="#">View all</a>
+        </div>
+        <div class="deal-grid">
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Northline Spirits</h3><span class="location">Columbus, OH</span></div>
+              <span class="score high">91 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$1.1M</strong></div>
+              <div class="deal-stat"><span>SDE</span><strong>$245K</strong></div>
+              <div class="deal-stat"><span>Margin</span><strong>31%</strong></div>
+            </div>
+            <p class="insight">Strong category mix and favorable lease with upside from premium inventory rotation.</p>
+            <div class="tags"><span class="tag">Inventory</span><span class="tag">Lease Quality</span><span class="tag">Margin</span></div>
+          </article>
+
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Canyon Beverage Mart</h3><span class="location">Reno, NV</span></div>
+              <span class="score mid">80 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$930K</strong></div>
+              <div class="deal-stat"><span>SDE</span><strong>$176K</strong></div>
+              <div class="deal-stat"><span>Multiple</span><strong>5.3x</strong></div>
+            </div>
+            <p class="insight">Consistent sales, but diligence should focus on license transfer timing and shrink controls.</p>
+            <div class="tags"><span class="tag">License</span><span class="tag">Shrink</span></div>
+          </article>
+
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Market Row Liquors</h3><span class="location">Richmond, VA</span></div>
+              <span class="score watch">77 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$780K</strong></div>
+              <div class="deal-stat"><span>SDE</span><strong>$132K</strong></div>
+              <div class="deal-stat"><span>Growth</span><strong>9%</strong></div>
+            </div>
+            <p class="insight">Sales trend is positive, though owner add-backs need clean verification.</p>
+            <div class="tags"><span class="tag">Add-backs</span><span class="tag">Growth</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="asset-section" id="industrial">
+        <div class="section-header">
+          <div>
+            <h2>Industrial Properties</h2>
+            <p>Small-bay warehouses and service industrial with tenant durability and rent growth.</p>
+          </div>
+          <a href="#">View all</a>
+        </div>
+        <div class="deal-grid">
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>East Loop Flex Park</h3><span class="location">San Antonio, TX</span></div>
+              <span class="score high">94 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$3.8M</strong></div>
+              <div class="deal-stat"><span>NOI</span><strong>$284K</strong></div>
+              <div class="deal-stat"><span>Occ.</span><strong>96%</strong></div>
+            </div>
+            <p class="insight">Below-market rents, staggered leases, and strong small-bay demand support rent resets.</p>
+            <div class="tags"><span class="tag">Rent Growth</span><span class="tag">Occupancy</span><span class="tag">Industrial</span></div>
+          </article>
+
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Railspur Warehouse</h3><span class="location">Kansas City, MO</span></div>
+              <span class="score mid">85 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$2.4M</strong></div>
+              <div class="deal-stat"><span>NOI</span><strong>$171K</strong></div>
+              <div class="deal-stat"><span>Cap</span><strong>7.1%</strong></div>
+            </div>
+            <p class="insight">Functional loading and infill location are positives; roof reserve should be modeled.</p>
+            <div class="tags"><span class="tag">Infill</span><span class="tag">Roof Reserve</span></div>
+          </article>
+
+          <article class="deal-card">
+            <div class="deal-top">
+              <div><h3>Northgate Contractor Bays</h3><span class="location">Charlotte, NC</span></div>
+              <span class="score mid">82 Score</span>
+            </div>
+            <div class="deal-stats">
+              <div class="deal-stat"><span>Ask</span><strong>$5.1M</strong></div>
+              <div class="deal-stat"><span>NOI</span><strong>$362K</strong></div>
+              <div class="deal-stat"><span>WALT</span><strong>3.4 yr</strong></div>
+            </div>
+            <p class="insight">Healthy tenant mix with moderate rollover exposure and clear mark-to-market path.</p>
+            <div class="tags"><span class="tag">Tenant Mix</span><span class="tag">WALT</span><span class="tag">Mark-to-market</span></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
