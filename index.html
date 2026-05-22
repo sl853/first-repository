@@ -547,6 +547,8 @@
         <button class="nav-link active" data-filter="all">Dashboard <span class="nav-count" id="count-all">0</span></button>
         <button class="nav-link" data-filter="Laundromat">Laundromats <span class="nav-count" id="count-laundromat">0</span></button>
         <button class="nav-link" data-filter="Hotel">Hotels <span class="nav-count" id="count-hotel">0</span></button>
+        <button class="nav-link" data-filter="Car Wash">Car Washes <span class="nav-count" id="count-car-wash">0</span></button>
+        <button class="nav-link" data-filter="Auto Repair">Auto Repair <span class="nav-count" id="count-auto-repair">0</span></button>
         <button class="nav-link" data-filter="Liquor Store">Liquor Stores <span class="nav-count" id="count-liquor-store">0</span></button>
         <button class="nav-link" data-filter="Industrial">Industrial <span class="nav-count" id="count-industrial">0</span></button>
       </nav>
@@ -583,6 +585,7 @@
       <div class="action-row">
         <p>Manual entry is the v1 ingestion path: add a messy listing, generate a score, and see what diligence is missing.</p>
         <div class="action-buttons">
+          <button class="secondary-action" id="open-web-search" type="button">Run Web Search</button>
           <button class="secondary-action" id="open-image-import" type="button">Upload Screenshot</button>
           <button class="primary-action" id="open-add-deal" type="button">Add Deal</button>
         </div>
@@ -730,6 +733,51 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="web-search-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="web-search-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="web-search-title">Run Web Search</h2>
+          <p>Search public broker/listing pages and import matches as unverified web leads. This is a scout pass, not a licensed feed.</p>
+        </div>
+        <button class="icon-button" id="close-web-search" type="button" aria-label="Close web search form">&times;</button>
+      </div>
+      <form class="deal-form" id="web-search-form">
+        <div class="form-grid">
+          <div class="field">
+            <label for="web-type">Asset type</label>
+            <select id="web-type" name="type">
+              <option value="all">All priority targets</option>
+              <option value="Laundromat">Laundromat</option>
+              <option value="Car Wash">Car Wash</option>
+              <option value="Auto Repair">Auto Repair</option>
+              <option value="Hotel">Hotel</option>
+              <option value="Liquor Store">Liquor Store</option>
+              <option value="Industrial">Industrial</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="web-location">Location</label>
+            <input id="web-location" name="location" required value="Texas" placeholder="Texas, Dallas TX, Sun Belt">
+          </div>
+          <div class="field">
+            <label for="web-max-ask">Max asking price</label>
+            <input id="web-max-ask" name="maxAsk" type="number" min="1" step="50000" value="1500000">
+          </div>
+          <div class="field">
+            <label for="web-limit">Result limit</label>
+            <input id="web-limit" name="limit" type="number" min="1" max="12" value="6">
+          </div>
+        </div>
+        <div class="memo-box">Searches public pages and saves visible candidates as source <code>web</code>. Treat imported values as unverified until you inspect the listing and source documents.</div>
+        <div class="form-actions">
+          <button class="secondary-action" id="cancel-web-search" type="button">Cancel</button>
+          <button class="primary-action" type="submit">Search & Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     const sampleDeals = [
       { id: "spin-cycle-express", name: "SpinCycle Express", type: "Laundromat", location: "Phoenix, AZ", ask: 840000, incomeLabel: "NOI", income: 156000, metricLabel: "Cap", metric: "18.6%", score: 92, confidence: 86, verified: true, summary: "Strong equipment base, below-market wash pricing, and room for unattended hours expansion.", tags: ["Lease Quality", "Automation", "Value Add"], reasons: ["Reported NOI supports a high implied yield at the asking price.", "Equipment list is mostly complete and supports lower near-term capex risk.", "Pricing and service mix leave a clear value-add path through card readers and wash-dry-fold."], missing: ["Utility bills by month", "Lease assignment consent", "Machine-level maintenance history"], memo: "Attractive laundromat acquisition with strong cash yield and identifiable operational upside. Proceed to LOI only after utility normalization and landlord assignment confirmation." },
@@ -749,6 +797,8 @@
     const categoryCopy = {
       "Laundromat": "Cash-flowing local operators with automation and pickup-delivery upside.",
       "Hotel": "Limited-service assets with rate optimization and renovation repositioning potential.",
+      "Car Wash": "Equipment-heavy local service assets where capex, traffic, and site quality drive returns.",
+      "Auto Repair": "Recurring local service demand with technician dependency, equipment, lease, and reputation risk.",
       "Liquor Store": "Local retail cash flow with inventory controls, licensing, and margin expansion signals.",
       "Industrial": "Small-bay warehouses and service industrial with tenant durability and rent growth."
     };
@@ -797,7 +847,7 @@
     }
     function renderCounts() {
       document.getElementById("count-all").textContent = deals.length;
-      ["Laundromat", "Hotel", "Liquor Store", "Industrial"].forEach((type) => {
+      ["Laundromat", "Hotel", "Car Wash", "Auto Repair", "Liquor Store", "Industrial"].forEach((type) => {
         document.getElementById(`count-${slug(type)}`).textContent = deals.filter((deal) => deal.type === type).length;
       });
     }
@@ -840,7 +890,7 @@
         <section class="asset-section" id="${slug(type)}">
           <div class="section-header">
             <div>
-              <h2>${type === "Industrial" ? "Industrial Properties" : `${type}s`}</h2>
+              <h2>${type === "Industrial" ? "Industrial Properties" : type === "Auto Repair" ? "Auto Repair Shops" : type === "Car Wash" ? "Car Washes" : `${type}s`}</h2>
               <p>${categoryCopy[type]}</p>
             </div>
             <span class="badge watch">${items.length} visible</span>
@@ -1022,6 +1072,17 @@
       document.getElementById("image-modal").setAttribute("aria-hidden", "true");
     }
 
+    function openWebSearchModal() {
+      document.getElementById("web-search-modal").classList.add("open");
+      document.getElementById("web-search-modal").setAttribute("aria-hidden", "false");
+      document.getElementById("web-location").focus();
+    }
+
+    function closeWebSearchModal() {
+      document.getElementById("web-search-modal").classList.remove("open");
+      document.getElementById("web-search-modal").setAttribute("aria-hidden", "true");
+    }
+
     async function loadDealsFromApi() {
       if (apiBase === null) return false;
       try {
@@ -1073,6 +1134,24 @@
       return result.deal;
     }
 
+    async function runWebSearchViaApi(formData) {
+      if (apiBase === null) throw new Error("Web search requires the localhost backend. Run npm start and open http://localhost:3000.");
+      const payload = {
+        type: formData.get("type"),
+        location: formData.get("location"),
+        maxAsk: Number(formData.get("maxAsk")),
+        limit: Number(formData.get("limit"))
+      };
+      const response = await fetch("/api/deals/web-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not run web search.");
+      return result.deals;
+    }
+
     document.getElementById("search-form").addEventListener("submit", (event) => {
       event.preventDefault();
       renderSections();
@@ -1103,6 +1182,12 @@
     document.getElementById("cancel-image-import").addEventListener("click", closeImageModal);
     document.getElementById("image-modal").addEventListener("click", (event) => {
       if (event.target.id === "image-modal") closeImageModal();
+    });
+    document.getElementById("open-web-search").addEventListener("click", openWebSearchModal);
+    document.getElementById("close-web-search").addEventListener("click", closeWebSearchModal);
+    document.getElementById("cancel-web-search").addEventListener("click", closeWebSearchModal);
+    document.getElementById("web-search-modal").addEventListener("click", (event) => {
+      if (event.target.id === "web-search-modal") closeWebSearchModal();
     });
     document.getElementById("deal-form").addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -1143,6 +1228,29 @@
       } finally {
         submitButton.disabled = false;
         submitButton.textContent = "Extract Deal";
+      }
+    });
+    document.getElementById("web-search-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submitButton = event.currentTarget.querySelector("button[type='submit']");
+      submitButton.disabled = true;
+      submitButton.textContent = "Searching...";
+      try {
+        const importedDeals = await runWebSearchViaApi(new FormData(event.currentTarget));
+        if (!importedDeals.length) {
+          alert("No new web leads found for that search. Try a broader location, higher max price, or a specific asset type.");
+          return;
+        }
+        deals = [...importedDeals, ...deals.filter((deal) => !importedDeals.some((item) => item.id === deal.id))];
+        renderCounts();
+        resetFilters();
+        closeWebSearchModal();
+        selectDeal(importedDeals[0].id);
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Search & Import";
       }
     });
 

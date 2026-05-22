@@ -394,6 +394,12 @@ function buildDeal(input, source = "manual") {
   const missing = missingItemsFor(type, docs, incomeLabel);
   const verified = confidence >= 82;
   const idBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "deal";
+  const sourceLabels = {
+    csv: "CSV Upload",
+    image: "Image Import",
+    web: "Web Lead",
+    manual: "Manual Entry"
+  };
 
   return {
     id: `${idBase}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
@@ -410,7 +416,7 @@ function buildDeal(input, source = "manual") {
     confidence,
     verified,
     summary: notes.trim() || "Listing added for Deal Radar scoring and diligence review.",
-    tags: [source === "csv" ? "CSV Upload" : "Manual Entry", verified ? "Verified Inputs" : "Needs Verification", score >= 85 ? "Priority" : "Diligence"],
+    tags: [sourceLabels[source] || "Manual Entry", verified ? "Verified Inputs" : "Needs Verification", score >= 85 ? "Priority" : "Diligence"],
     reasons: [
       incomeLabel === "Keys" ? `Initial hotel basis is ${metric}.` : `${incomeLabel} implies ${metric} at the asking price.`,
       `${docs.length} of 6 core diligence documents were marked as received.`,
@@ -429,6 +435,110 @@ function parseCsv(text) {
     const values = line.split(",").map((value) => value.trim());
     return Object.fromEntries(headers.map((header, index) => [header, values[index] || ""]));
   });
+}
+
+function decodeXml(value = "") {
+  return value
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'");
+}
+
+function stripHtml(value = "") {
+  return decodeXml(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function parseBingRss(xml) {
+  return Array.from(xml.matchAll(/<item>([\s\S]*?)<\/item>/g)).map((match) => {
+    const item = match[1];
+    const title = stripHtml(item.match(/<title>([\s\S]*?)<\/title>/)?.[1] || "");
+    const link = decodeXml(item.match(/<link>([\s\S]*?)<\/link>/)?.[1] || "");
+    const description = stripHtml(item.match(/<description>([\s\S]*?)<\/description>/)?.[1] || "");
+    return { title, link, description };
+  });
+}
+
+function moneyFromText(text) {
+  const matches = Array.from(text.matchAll(/\$ ?([0-9][0-9,.]*)( ?[kKmM])?/g));
+  return matches.map((match) => {
+    const base = Number(match[1].replace(/,/g, ""));
+    const suffix = (match[2] || "").trim().toLowerCase();
+    if (!Number.isFinite(base)) return 0;
+    if (suffix === "k") return base * 1000;
+    if (suffix === "m") return base * 1000000;
+    return base;
+  }).filter((value) => value > 0);
+}
+
+function inferType(text, requestedType) {
+  if (requestedType && requestedType !== "all") return requestedType;
+  const lower = text.toLowerCase();
+  if (lower.includes("car wash") || lower.includes("truck wash")) return "Car Wash";
+  if (lower.includes("auto repair") || lower.includes("automotive")) return "Auto Repair";
+  if (lower.includes("laundromat") || lower.includes("laundry")) return "Laundromat";
+  if (lower.includes("hotel") || lower.includes("motel")) return "Hotel";
+  if (lower.includes("liquor")) return "Liquor Store";
+  if (lower.includes("industrial") || lower.includes("warehouse")) return "Industrial";
+  return "Laundromat";
+}
+
+function inferListingFields(result, criteria) {
+  const text = `${result.title} ${result.description}`;
+  const amounts = moneyFromText(text);
+  const ask = amounts.find((value) => !criteria.maxAsk || value <= criteria.maxAsk) || amounts[0] || 1;
+  const income = amounts.find((value) => value > 1000 && value < ask * 0.8) || 0;
+  const type = inferType(text, criteria.type);
+  const name = result.title
+    .replace(/\s*\|\s*BizBuySell.*$/i, "")
+    .replace(/\s*-\s*BizBuySell.*$/i, "")
+    .replace(/\s*\|\s*BizScout.*$/i, "")
+    .slice(0, 90)
+    .trim() || `${type} Web Lead`;
+
+  return {
+    name,
+    type,
+    location: criteria.location,
+    ask,
+    incomeLabel: type === "Hotel" ? "Keys" : "SDE",
+    income,
+    notes: `Automatic web search lead. Title: ${result.title}. Snippet: ${result.description}. URL: ${result.link}`,
+    docs: []
+  };
+}
+
+async function runPublicWebSearch(criteria) {
+  const typeTerms = criteria.type && criteria.type !== "all"
+    ? [criteria.type]
+    : ["laundromat", "car wash", "auto repair"];
+  const sourceTerms = ["site:bizbuysell.com", "site:bizscout.com", "site:sunbeltnetwork.com"];
+  const queries = typeTerms.flatMap((type) =>
+    sourceTerms.map((source) => `${source} ${criteria.location} ${type} for sale asking price cash flow`)
+  );
+  const seen = new Set();
+  const results = [];
+
+  for (const query of queries.slice(0, 9)) {
+    const url = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(query)}`;
+    const response = await fetch(url, { headers: { "User-Agent": "DealRadar/0.1" } });
+    if (!response.ok) continue;
+    const xml = await response.text();
+    for (const item of parseBingRss(xml)) {
+      if (!item.link || seen.has(item.link)) continue;
+      seen.add(item.link);
+      const haystack = `${item.title} ${item.description}`.toLowerCase();
+      if (!haystack.includes("sale") && !haystack.includes("cash flow") && !haystack.includes("asking")) continue;
+      const input = inferListingFields(item, criteria);
+      if (criteria.maxAsk && input.ask > criteria.maxAsk) continue;
+      results.push({ input, url: item.link });
+      if (results.length >= criteria.limit) return results;
+    }
+  }
+
+  return results;
 }
 
 function extractJson(text) {
@@ -588,6 +698,35 @@ app.post("/api/deals/extract-image", upload.single("image"), async (req, res, ne
     ];
     insertDeal.run(...toRow(deal));
     res.status(201).json({ extracted, deal });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/deals/web-search", async (req, res, next) => {
+  try {
+    const criteria = {
+      type: String(req.body.type || "all"),
+      location: String(req.body.location || "Texas").trim(),
+      maxAsk: Number(req.body.maxAsk || 1500000),
+      limit: Math.min(12, Math.max(1, Number(req.body.limit || 6)))
+    };
+    if (!criteria.location) {
+      const error = new Error("location is required.");
+      error.status = 400;
+      throw error;
+    }
+
+    const found = await runPublicWebSearch(criteria);
+    const created = [];
+    for (const result of found) {
+      const deal = buildDeal(result.input, "web");
+      const existing = db.prepare("SELECT id FROM deals WHERE summary LIKE ?").get(`%${result.url}%`);
+      if (existing) continue;
+      insertDeal.run(...toRow(deal));
+      created.push(deal);
+    }
+    res.status(201).json({ criteria, count: created.length, deals: created });
   } catch (error) {
     next(error);
   }
