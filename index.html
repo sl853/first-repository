@@ -196,6 +196,35 @@
       background: rgba(95, 168, 255, 0.12);
       color: var(--text);
     }
+    .action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .action-row p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .primary-action,
+    .secondary-action {
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-weight: 850;
+    }
+    .primary-action {
+      border: 0;
+      background: var(--text);
+      color: #090b10;
+    }
+    .secondary-action {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--soft);
+    }
     .metrics {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -378,6 +407,107 @@
       line-height: 1.55;
       font-size: 14px;
     }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      padding: 22px;
+      background: rgba(3, 5, 9, 0.72);
+    }
+    .modal-backdrop.open { display: grid; }
+    .modal {
+      width: min(760px, 100%);
+      max-height: calc(100vh - 44px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0d1118;
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .modal-header h2 { margin: 0 0 6px; font-size: 24px; }
+    .modal-header p { margin: 0; color: var(--muted); line-height: 1.5; }
+    .icon-button {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 20px;
+      line-height: 1;
+    }
+    .deal-form {
+      display: grid;
+      gap: 16px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+    .field.full { grid-column: 1 / -1; }
+    .field label {
+      color: var(--soft);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #090d13;
+      color: var(--text);
+      padding: 12px;
+      outline: none;
+    }
+    .field textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: rgba(95, 168, 255, 0.8);
+    }
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .doc-check {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 10px;
+      color: var(--soft);
+      font-size: 13px;
+    }
+    .doc-check input { width: 16px; height: 16px; }
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 4px;
+    }
 
     @media (max-width: 1260px) {
       .app-shell { grid-template-columns: 220px minmax(0, 1fr); }
@@ -391,8 +521,10 @@
       main { padding: 22px; }
       .topbar, .section-header { flex-direction: column; align-items: flex-start; }
       .metrics, .deal-grid { grid-template-columns: 1fr; }
+      .action-row { align-items: flex-start; flex-direction: column; }
       .search-panel { grid-template-columns: 1fr; }
       .search-panel button { min-height: 48px; }
+      .form-grid, .doc-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -440,6 +572,10 @@
         <button class="filter-chip" data-filter="high-confidence">High confidence</button>
         <button class="filter-chip" data-filter="missing-docs">Missing docs</button>
         <button class="filter-chip" data-filter="high-score">Score 85+</button>
+      </div>
+      <div class="action-row">
+        <p>Manual entry is the v1 ingestion path: add a messy listing, generate a score, and see what diligence is missing.</p>
+        <button class="primary-action" id="open-add-deal" type="button">Add Deal</button>
       </div>
       <section class="metrics" aria-label="Pipeline metrics">
         <div class="metric"><span>Visible Deals</span><strong id="metric-visible">0</strong></div>
@@ -493,8 +629,76 @@
     </aside>
   </div>
 
+  <div class="modal-backdrop" id="deal-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deal-modal-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="deal-modal-title">Add a Deal</h2>
+          <p>Paste in the core listing facts you have. Deal Radar will score it, label confidence, and flag missing diligence.</p>
+        </div>
+        <button class="icon-button" id="close-add-deal" type="button" aria-label="Close add deal form">&times;</button>
+      </div>
+      <form class="deal-form" id="deal-form">
+        <div class="form-grid">
+          <div class="field">
+            <label for="deal-name">Deal name</label>
+            <input id="deal-name" name="name" required placeholder="Example: Oak Street Laundromat">
+          </div>
+          <div class="field">
+            <label for="deal-type">Asset type</label>
+            <select id="deal-type" name="type" required>
+              <option value="Laundromat">Laundromat</option>
+              <option value="Hotel">Hotel</option>
+              <option value="Liquor Store">Liquor Store</option>
+              <option value="Industrial">Industrial</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="deal-location">Location</label>
+            <input id="deal-location" name="location" required placeholder="City, ST">
+          </div>
+          <div class="field">
+            <label for="deal-ask">Asking price</label>
+            <input id="deal-ask" name="ask" type="number" min="1" step="1000" required placeholder="850000">
+          </div>
+          <div class="field">
+            <label for="deal-income-label">Income metric</label>
+            <select id="deal-income-label" name="incomeLabel" required>
+              <option value="NOI">NOI</option>
+              <option value="SDE">SDE</option>
+              <option value="Keys">Hotel keys</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="deal-income">Income / key count</label>
+            <input id="deal-income" name="income" type="number" min="0" step="1000" required placeholder="150000">
+          </div>
+          <div class="field full">
+            <label for="deal-notes">Listing notes</label>
+            <textarea id="deal-notes" name="notes" placeholder="What does the seller claim? What is the upside? What worries you?"></textarea>
+          </div>
+          <div class="field full">
+            <label>Documents received</label>
+            <div class="doc-grid">
+              <label class="doc-check"><input type="checkbox" name="docs" value="financials"> P&L or tax return</label>
+              <label class="doc-check"><input type="checkbox" name="docs" value="lease"> Lease or rent roll</label>
+              <label class="doc-check"><input type="checkbox" name="docs" value="utilities"> Utility bills</label>
+              <label class="doc-check"><input type="checkbox" name="docs" value="equipment"> Equipment / capex list</label>
+              <label class="doc-check"><input type="checkbox" name="docs" value="taxes"> Property tax record</label>
+              <label class="doc-check"><input type="checkbox" name="docs" value="insurance"> Insurance quote</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="secondary-action" id="cancel-add-deal" type="button">Cancel</button>
+          <button class="primary-action" type="submit">Score Deal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
-    const deals = [
+    const sampleDeals = [
       { id: "spin-cycle-express", name: "SpinCycle Express", type: "Laundromat", location: "Phoenix, AZ", ask: 840000, incomeLabel: "NOI", income: 156000, metricLabel: "Cap", metric: "18.6%", score: 92, confidence: 86, verified: true, summary: "Strong equipment base, below-market wash pricing, and room for unattended hours expansion.", tags: ["Lease Quality", "Automation", "Value Add"], reasons: ["Reported NOI supports a high implied yield at the asking price.", "Equipment list is mostly complete and supports lower near-term capex risk.", "Pricing and service mix leave a clear value-add path through card readers and wash-dry-fold."], missing: ["Utility bills by month", "Lease assignment consent", "Machine-level maintenance history"], memo: "Attractive laundromat acquisition with strong cash yield and identifiable operational upside. Proceed to LOI only after utility normalization and landlord assignment confirmation." },
       { id: "metro-wash-house", name: "Metro Wash House", type: "Laundromat", location: "Cleveland, OH", ask: 610000, incomeLabel: "NOI", income: 98000, metricLabel: "Cap", metric: "16.1%", score: 81, confidence: 71, verified: false, summary: "Durable local traffic with upside from payment modernization and wash-dry-fold services.", tags: ["Stable Demand", "Tech Upgrade"], reasons: ["Cash flow appears solid relative to price, but documentation is incomplete.", "Neighborhood demand is steady and operating complexity is moderate.", "Technology upgrades create measurable revenue and labor-efficiency upside."], missing: ["Tax returns", "Lease renewal option", "Equipment age schedule", "Payroll detail"], memo: "Good operational candidate with clear modernization upside. Confidence is medium because seller financials need verification before valuation is reliable." },
       { id: "summit-inn", name: "Summit Inn Flag Conversion", type: "Hotel", location: "Boise, ID", ask: 4200000, incomeLabel: "Keys", income: 58, metricLabel: "RevPAR", metric: "$82", score: 89, confidence: 78, verified: false, summary: "Rate gap versus the comp set suggests repositioning upside after light PIP investment.", tags: ["Brand Upside", "PIP", "Rate Gap"], reasons: ["RevPAR trails nearby comparable assets, creating a credible repositioning thesis.", "Asset size is large enough for professional management without becoming institutional.", "Debt coverage may work if PIP budget stays controlled."], missing: ["Trailing 12 P&L", "Franchise PIP quote", "Occupancy by channel", "Property condition report"], memo: "Promising hospitality repositioning deal. The investment case depends on disciplined renovation scope and reliable trailing financials." },
@@ -504,6 +708,10 @@
       { id: "east-loop-flex", name: "East Loop Flex Park", type: "Industrial", location: "San Antonio, TX", ask: 3800000, incomeLabel: "NOI", income: 284000, metricLabel: "Occ.", metric: "96%", score: 94, confidence: 88, verified: true, summary: "Below-market rents, staggered leases, and strong small-bay demand support rent resets.", tags: ["Rent Growth", "Occupancy", "Industrial"], reasons: ["High occupancy and staggered rollover lower near-term income volatility.", "Current rents appear below market, creating a clean mark-to-market thesis.", "Small-bay demand improves tenant replacement probability."], missing: ["Environmental report", "Roof inspection", "Tenant estoppels"], memo: "Best-in-pipeline industrial opportunity. Advance to full underwriting and request third-party diligence reports." },
       { id: "railspur-warehouse", name: "Railspur Warehouse", type: "Industrial", location: "Kansas City, MO", ask: 2400000, incomeLabel: "NOI", income: 171000, metricLabel: "Cap", metric: "7.1%", score: 85, confidence: 74, verified: false, summary: "Functional loading and infill location are positives; roof reserve should be modeled.", tags: ["Infill", "Roof Reserve", "Industrial"], reasons: ["Going-in yield is acceptable for a functional infill warehouse.", "Physical plant risk is manageable if roof reserve is priced correctly.", "Location and loading features support tenant demand."], missing: ["Roof quote", "Phase I environmental", "Lease abstracts", "CAM reconciliation"], memo: "Solid industrial candidate with a specific diligence question: roof cost. Price adjustment should depend on inspection outcome." }
     ];
+
+    const apiBase = window.location.protocol === "file:" ? null : "";
+    const savedDeals = JSON.parse(localStorage.getItem("dealRadarDeals") || "[]");
+    let deals = [...savedDeals, ...sampleDeals];
 
     const categoryCopy = {
       "Laundromat": "Cash-flowing local operators with automation and pickup-delivery upside.",
@@ -637,6 +845,179 @@
       renderSections();
     }
 
+    function saveUserDeals() {
+      if (apiBase !== null) return;
+      const userDeals = deals.filter((deal) => deal.source === "manual");
+      localStorage.setItem("dealRadarDeals", JSON.stringify(userDeals));
+    }
+
+    function resetFilters() {
+      activeCategory = "all";
+      activeQuickFilter = "all";
+      searchInput.value = "";
+      document.querySelectorAll(".nav-link[data-filter]").forEach((item) => item.classList.toggle("active", item.dataset.filter === "all"));
+      document.querySelectorAll(".filter-chip").forEach((item) => item.classList.toggle("active", item.dataset.filter === "all"));
+    }
+
+    function selectedDocs(formData) {
+      return Array.from(document.querySelectorAll("input[name='docs']:checked")).map((input) => input.value);
+    }
+
+    function scoreManualDeal({ ask, income, incomeLabel, type, docs, notes }) {
+      const docScore = docs.length * 6;
+      const noteBoost = notes.trim().length > 35 ? 5 : 0;
+      const yieldPercent = incomeLabel === "Keys" ? 0 : (income / ask) * 100;
+      let score = 55 + docScore + noteBoost;
+
+      if (incomeLabel === "NOI") {
+        if (yieldPercent >= 12) score += 22;
+        else if (yieldPercent >= 8) score += 15;
+        else if (yieldPercent >= 6) score += 9;
+        else score += 2;
+      } else if (incomeLabel === "SDE") {
+        const multiple = ask / Math.max(income, 1);
+        if (multiple <= 3.5) score += 22;
+        else if (multiple <= 5) score += 15;
+        else if (multiple <= 6.5) score += 8;
+        else score += 1;
+      } else {
+        const askPerKey = ask / Math.max(income, 1);
+        if (askPerKey <= 70000) score += 18;
+        else if (askPerKey <= 100000) score += 11;
+        else score += 4;
+      }
+
+      if (type === "Industrial" && docs.includes("lease")) score += 4;
+      if (type === "Laundromat" && docs.includes("utilities")) score += 4;
+      if (type === "Hotel" && docs.includes("insurance")) score += 3;
+      if (type === "Liquor Store" && docs.includes("financials")) score += 3;
+
+      const confidence = Math.min(95, 35 + docs.length * 9 + (notes.trim().length > 35 ? 6 : 0));
+      return { score: Math.max(40, Math.min(96, Math.round(score))), confidence };
+    }
+
+    function missingItemsFor(type, docs, incomeLabel) {
+      const docLabels = {
+        financials: "P&L or tax return",
+        lease: "Lease or rent roll",
+        utilities: "Utility bills",
+        equipment: "Equipment / capex list",
+        taxes: "Property tax record",
+        insurance: "Insurance quote"
+      };
+      const missing = Object.entries(docLabels)
+        .filter(([key]) => !docs.includes(key))
+        .map(([, label]) => label);
+
+      if (type === "Hotel" && incomeLabel === "Keys") missing.unshift("Trailing 12 operating statement");
+      if (type === "Liquor Store") missing.push("License transfer timeline");
+      if (type === "Industrial") missing.push("Environmental report");
+      if (type === "Laundromat") missing.push("Machine-level maintenance history");
+      return missing.slice(0, 6);
+    }
+
+    function metricFor({ ask, income, incomeLabel }) {
+      if (incomeLabel === "Keys") {
+        return { metricLabel: "Ask/key", metric: compactCurrency.format(ask / Math.max(income, 1)) };
+      }
+      if (incomeLabel === "SDE") {
+        return { metricLabel: "Multiple", metric: `${(ask / Math.max(income, 1)).toFixed(1)}x` };
+      }
+      return { metricLabel: "Cap", metric: `${((income / ask) * 100).toFixed(1)}%` };
+    }
+
+    function createManualDeal(formData) {
+      const name = formData.get("name").trim();
+      const type = formData.get("type");
+      const location = formData.get("location").trim();
+      const ask = Number(formData.get("ask"));
+      const incomeLabel = formData.get("incomeLabel");
+      const income = Number(formData.get("income"));
+      const notes = formData.get("notes") || "";
+      const docs = selectedDocs(formData);
+      const { score, confidence } = scoreManualDeal({ ask, income, incomeLabel, type, docs, notes });
+      const { metricLabel, metric } = metricFor({ ask, income, incomeLabel });
+      const missing = missingItemsFor(type, docs, incomeLabel);
+      const verified = confidence >= 82;
+      const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${Date.now()}`;
+
+      return {
+        id,
+        source: "manual",
+        name,
+        type,
+        location,
+        ask,
+        incomeLabel,
+        income,
+        metricLabel,
+        metric,
+        score,
+        confidence,
+        verified,
+        summary: notes.trim() || "Manual listing added for initial Deal Radar scoring and diligence review.",
+        tags: ["Manual Entry", verified ? "Verified Inputs" : "Needs Verification", score >= 85 ? "Priority" : "Diligence"],
+        reasons: [
+          incomeLabel === "Keys" ? `Initial hotel basis is ${metric}.` : `${incomeLabel} implies ${metric} at the asking price.`,
+          `${docs.length} of 6 core diligence documents were marked as received.`,
+          confidence >= 82 ? "Confidence is high enough for deeper underwriting." : "Confidence is limited by missing source documents."
+        ],
+        missing,
+        memo: `${name} is a ${type.toLowerCase()} opportunity in ${location} with an initial Deal Score of ${score} and ${confidence}% confidence. Next step: request the missing diligence items before treating the valuation as reliable.`
+      };
+    }
+
+    function openModal() {
+      document.getElementById("deal-modal").classList.add("open");
+      document.getElementById("deal-modal").setAttribute("aria-hidden", "false");
+      document.getElementById("deal-name").focus();
+    }
+
+    function closeModal() {
+      document.getElementById("deal-modal").classList.remove("open");
+      document.getElementById("deal-modal").setAttribute("aria-hidden", "true");
+    }
+
+    async function loadDealsFromApi() {
+      if (apiBase === null) return false;
+      try {
+        const response = await fetch("/api/deals");
+        if (!response.ok) throw new Error("API unavailable");
+        const payload = await response.json();
+        deals = payload.deals;
+        selectedId = deals[0]?.id;
+        return true;
+      } catch (error) {
+        console.warn("Deal Radar API unavailable; using browser-local data.", error);
+        return false;
+      }
+    }
+
+    async function createDealViaApi(formData) {
+      const docs = selectedDocs(formData);
+      const payload = {
+        name: formData.get("name"),
+        type: formData.get("type"),
+        location: formData.get("location"),
+        ask: Number(formData.get("ask")),
+        incomeLabel: formData.get("incomeLabel"),
+        income: Number(formData.get("income")),
+        notes: formData.get("notes") || "",
+        docs
+      };
+
+      if (apiBase === null) return createManualDeal(formData);
+
+      const response = await fetch("/api/deals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error((await response.json()).error || "Could not save deal.");
+      const result = await response.json();
+      return result.deal;
+    }
+
     document.getElementById("search-form").addEventListener("submit", (event) => {
       event.preventDefault();
       renderSections();
@@ -656,9 +1037,41 @@
         renderSections();
       });
     });
+    document.getElementById("open-add-deal").addEventListener("click", openModal);
+    document.getElementById("close-add-deal").addEventListener("click", closeModal);
+    document.getElementById("cancel-add-deal").addEventListener("click", closeModal);
+    document.getElementById("deal-modal").addEventListener("click", (event) => {
+      if (event.target.id === "deal-modal") closeModal();
+    });
+    document.getElementById("deal-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submitButton = event.currentTarget.querySelector("button[type='submit']");
+      submitButton.disabled = true;
+      submitButton.textContent = "Scoring...";
+      try {
+        const deal = await createDealViaApi(new FormData(event.currentTarget));
+        deals = [deal, ...deals.filter((item) => item.id !== deal.id)];
+        saveUserDeals();
+        renderCounts();
+        resetFilters();
+        event.currentTarget.reset();
+        closeModal();
+        selectDeal(deal.id);
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Score Deal";
+      }
+    });
 
-    renderCounts();
-    selectDeal(selectedId);
+    async function init() {
+      await loadDealsFromApi();
+      renderCounts();
+      selectDeal(selectedId || deals[0].id);
+    }
+
+    init();
   </script>
 </body>
 </html>
