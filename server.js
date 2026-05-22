@@ -697,7 +697,6 @@ seedSamples();
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(express.text({ type: ["text/csv", "text/plain"], limit: "2mb" }));
-app.use(express.static(__dirname));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, database: dbPath });
@@ -805,6 +804,12 @@ app.post("/api/deals/web-search", async (req, res, next) => {
     next(error);
   }
 });
+
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "API route not found. Restart the backend if you recently added this feature." });
+});
+
+app.use(express.static(__dirname));
 
 app.use((error, _req, res, _next) => {
   res.status(error.status || 500).json({ error: error.message || "Unexpected server error." });

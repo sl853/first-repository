@@ -738,7 +738,7 @@
       <div class="modal-header">
         <div>
           <h2 id="web-search-title">Run Web Search</h2>
-          <p>Search public broker/listing pages and import matches as unverified web leads. This is a scout pass, not a licensed feed.</p>
+          <p>Search public broker/listing pages and import matches as unverified web leads. Start broad, then tighten the filters.</p>
         </div>
         <button class="icon-button" id="close-web-search" type="button" aria-label="Close web search form">&times;</button>
       </div>
@@ -758,7 +758,7 @@
           </div>
           <div class="field">
             <label for="web-location">Location</label>
-            <input id="web-location" name="location" required value="Texas" placeholder="Texas, Dallas TX, Sun Belt">
+            <input id="web-location" name="location" required value="Texas" placeholder="Texas, Dallas TX, Phoenix AZ, Sun Belt">
           </div>
           <div class="field">
             <label for="web-max-ask">Max asking price</label>
@@ -1088,13 +1088,27 @@
       try {
         const response = await fetch("/api/deals");
         if (!response.ok) throw new Error("API unavailable");
-        const payload = await response.json();
+        const payload = await readJson(response);
         deals = payload.deals;
         selectedId = deals[0]?.id;
         return true;
       } catch (error) {
         console.warn("Deal Radar API unavailable; using browser-local data.", error);
-        return false;
+      return false;
+      }
+    }
+
+    async function readJson(response) {
+      const contentType = response.headers.get("content-type") || "";
+      const text = await response.text();
+      if (!contentType.includes("application/json")) {
+        const preview = text.slice(0, 80).replace(/\s+/g, " ");
+        throw new Error(`Expected JSON from backend, but got ${contentType || "unknown content"}. Open http://localhost:3000 and restart npm start if needed. Preview: ${preview}`);
+      }
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        throw new Error(`Backend returned invalid JSON: ${error.message}`);
       }
     }
 
@@ -1118,8 +1132,8 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) throw new Error((await response.json()).error || "Could not save deal.");
-      const result = await response.json();
+      const result = await readJson(response);
+      if (!response.ok) throw new Error(result.error || "Could not save deal.");
       return result.deal;
     }
 
@@ -1129,7 +1143,7 @@
         method: "POST",
         body: new FormData(form)
       });
-      const result = await response.json();
+      const result = await readJson(response);
       if (!response.ok) throw new Error(result.error || "Could not extract listing from image.");
       return result.deal;
     }
@@ -1147,7 +1161,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const result = await response.json();
+      const result = await readJson(response);
       if (!response.ok) throw new Error(result.error || "Could not run web search.");
       return result.deals;
     }
