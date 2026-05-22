@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Deal Radar</title>
+</head>
+<body>
+  <h1>Deal Radar</h1>
+  <p>First AI-assisted acquisition project.</p>
+</body>
+</html>
