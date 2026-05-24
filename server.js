@@ -739,6 +739,16 @@ async function deleteDealsBySource(source) {
   return db.prepare("DELETE FROM deals WHERE source = ?").run(source).changes;
 }
 
+async function deleteDealsBySources(sources) {
+  if (!sources.length) return 0;
+  if (usePostgres) {
+    const result = await pool.query("DELETE FROM deals WHERE source = ANY($1)", [sources]);
+    return result.rowCount;
+  }
+  const placeholders = sources.map(() => "?").join(", ");
+  return db.prepare(`DELETE FROM deals WHERE source IN (${placeholders})`).run(...sources).changes;
+}
+
 async function updateSearchLastRun(id) {
   if (usePostgres) {
     await pool.query("UPDATE search_profiles SET last_run_at = CURRENT_TIMESTAMP WHERE id = $1", [id]);
@@ -770,6 +780,9 @@ function parseDocs(docs) {
 }
 
 function metricFor({ ask, income, incomeLabel }) {
+  if (!ask || !income || incomeLabel === "Unknown") {
+    return { metricLabel: "Evidence", metric: "Needs source" };
+  }
   if (incomeLabel === "Keys") {
     return { metricLabel: "Ask/key", metric: `$${Math.round(ask / Math.max(income, 1)).toLocaleString()}` };
   }
@@ -780,6 +793,12 @@ function metricFor({ ask, income, incomeLabel }) {
 }
 
 function scoreDeal({ ask, income, incomeLabel, type, docs, notes }) {
+  if (!ask || !income || incomeLabel === "Unknown") {
+    return {
+      score: 38,
+      confidence: Math.min(35, 18 + docs.length * 4 + (notes.trim().length > 35 ? 4 : 0))
+    };
+  }
   const docScore = docs.length * 6;
   const noteBoost = notes.trim().length > 35 ? 5 : 0;
   const yieldPercent = incomeLabel === "Keys" ? 0 : (income / ask) * 100;
@@ -843,8 +862,9 @@ function buildDeal(input, source = "manual") {
   const income = Number(input.income);
   const notes = String(input.notes || input.summary || "");
   const docs = parseDocs(input.docs);
+  const researchOnly = source === "research" || (source === "web" && (!ask || !income || incomeLabel === "Unknown"));
 
-  if (!name || !type || !location || !Number.isFinite(ask) || ask <= 0 || !Number.isFinite(income)) {
+  if (!name || !type || !location || !Number.isFinite(ask) || (!researchOnly && ask <= 0) || !Number.isFinite(income)) {
     const error = new Error("name, type, location, ask, and income are required.");
     error.status = 400;
     throw error;
@@ -859,8 +879,12 @@ function buildDeal(input, source = "manual") {
     csv: "CSV Upload",
     image: "Image Import",
     web: "Web Lead",
+    research: "Research Lead",
     manual: "Manual Entry"
   };
+  const leadTag = sourceLabels[source] || "Manual Entry";
+  const qualityTag = researchOnly ? "Needs Contact" : verified ? "Verified Inputs" : "Needs Verification";
+  const priorityTag = researchOnly ? "Research Queue" : score >= 85 ? "Priority" : "Diligence";
 
   return {
     id: `${idBase}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
@@ -877,14 +901,22 @@ function buildDeal(input, source = "manual") {
     confidence,
     verified,
     summary: notes.trim() || "Listing added for Deal Radar scoring and diligence review.",
-    tags: [sourceLabels[source] || "Manual Entry", verified ? "Verified Inputs" : "Needs Verification", score >= 85 ? "Priority" : "Diligence"],
-    reasons: [
-      incomeLabel === "Keys" ? `Initial hotel basis is ${metric}.` : `${incomeLabel} implies ${metric} at the asking price.`,
-      `${docs.length} of 6 core diligence documents were marked as received.`,
-      confidence >= 82 ? "Confidence is high enough for deeper underwriting." : "Confidence is limited by missing source documents."
-    ],
+    tags: [leadTag, qualityTag, priorityTag],
+    reasons: researchOnly
+      ? [
+        "This source looked relevant, but price and income were not visible enough for underwriting.",
+        "The next step is to find the broker/seller contact and request source financials.",
+        "Do not treat the Deal Score as valuation signal until core fields are verified."
+      ]
+      : [
+        incomeLabel === "Keys" ? `Initial hotel basis is ${metric}.` : `${incomeLabel} implies ${metric} at the asking price.`,
+        `${docs.length} of 6 core diligence documents were marked as received.`,
+        confidence >= 82 ? "Confidence is high enough for deeper underwriting." : "Confidence is limited by missing source documents."
+      ],
     missing,
-    memo: `${name} is a ${type.toLowerCase()} opportunity in ${location} with an initial Deal Score of ${score} and ${confidence}% confidence. Next step: request the missing diligence items before treating the valuation as reliable.`
+    memo: researchOnly
+      ? `${name} is a research lead for ${type.toLowerCase()} opportunities in ${location}. It needs contact discovery and source documents before Deal Radar can underwrite it.`
+      : `${name} is a ${type.toLowerCase()} opportunity in ${location} with an initial Deal Score of ${score} and ${confidence}% confidence. Next step: request the missing diligence items before treating the valuation as reliable.`
   };
 }
 
@@ -916,8 +948,23 @@ function buildSearchProfile(input = {}) {
   };
 }
 
+const defaultSearchProfiles = [
+  { name: "Florida laundromats", type: "Laundromat", location: "Florida", maxAsk: 1500000, limit: 4 },
+  { name: "Florida liquor stores", type: "Liquor Store", location: "Florida", maxAsk: 1200000, limit: 4 },
+  { name: "Texas car washes", type: "Car Wash", location: "Texas", maxAsk: 2000000, limit: 4 },
+  { name: "Texas auto repair", type: "Auto Repair", location: "Texas", maxAsk: 1000000, limit: 4 },
+  { name: "Arizona laundromats", type: "Laundromat", location: "Arizona", maxAsk: 1500000, limit: 4 }
+].map((search) => ({
+  id: null,
+  frequency: "recommended",
+  status: "active",
+  lastRunAt: null,
+  ...search
+}));
+
 function sourceNameForUrl(url = "", title = "") {
   const text = `${url} ${title}`.toLowerCase();
+  if (text.includes("businessbroker.net")) return "BusinessBroker.net";
   if (text.includes("bizbuysell")) return "BizBuySell";
   if (text.includes("bizquest")) return "BizQuest";
   if (text.includes("loopnet")) return "LoopNet";
@@ -1001,6 +1048,7 @@ async function runSearchAgent(criteria, searchId = null) {
   const { results: found, sourceLinks } = await runPublicWebSearch(criteria);
   const created = [];
   const existingDeals = [];
+  const researchLeads = [];
 
   for (const result of found) {
     const deal = buildDeal(result.input, "web");
@@ -1013,14 +1061,33 @@ async function runSearchAgent(criteria, searchId = null) {
     created.push(deal);
   }
 
-  const message = created.length || existingDeals.length
-    ? "Imported unverified leads with visible price and income signals."
-    : "No importable listings found with visible price and income signals. Try a broader location or inspect the source links manually.";
+  const usedUrls = new Set(found.map((result) => result.url).filter(Boolean));
+  for (const link of sourceLinks) {
+    if (created.length + existingDeals.length + researchLeads.length >= criteria.limit) break;
+    if (link.kind !== "candidate") continue;
+    if (!link.url || usedUrls.has(link.url)) continue;
+    const deal = buildDeal(buildResearchLeadInput(link, criteria), "research");
+    const existing = await dealRowBySummaryUrl(link.url) || await dealRowByFingerprint(deal);
+    if (existing) {
+      existingDeals.push(fromRow(existing));
+      continue;
+    }
+    await insertDealRecord(deal);
+    researchLeads.push(deal);
+  }
+
+  const totalLeads = created.length + researchLeads.length + existingDeals.length;
+  const importedWithIncome = created.filter((deal) => Number(deal.income) > 0).length;
+  const message = created.length
+    ? `Imported ${created.length} public listing candidate${created.length === 1 ? "" : "s"}; ${importedWithIncome} had visible income/cash-flow signals.`
+    : totalLeads
+      ? "Added research leads that need contact discovery and source documents before underwriting."
+      : "No source leads found. Try a broader location or inspect the source links manually.";
   const run = {
     id: `run-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
     searchId,
     criteria,
-    status: created.length || existingDeals.length ? "imported" : "needs_manual_review",
+    status: created.length ? "imported" : totalLeads ? "research_queue" : "needs_manual_review",
     importedCount: created.length,
     existingCount: existingDeals.length,
     sourceLinks: sourceLinks.slice(0, 8),
@@ -1033,8 +1100,9 @@ async function runSearchAgent(criteria, searchId = null) {
   return {
     criteria,
     count: created.length,
+    researchCount: researchLeads.length,
     existingCount: existingDeals.length,
-    deals: [...created, ...existingDeals],
+    deals: [...created, ...researchLeads, ...existingDeals],
     sourceLinks: run.sourceLinks,
     message,
     run
@@ -1054,6 +1122,7 @@ function parseCsv(text) {
 function decodeXml(value = "") {
   return value
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
@@ -1063,6 +1132,14 @@ function decodeXml(value = "") {
 
 function stripHtml(value = "") {
   return decodeXml(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function absoluteUrl(url, base) {
+  try {
+    return new URL(url, base).toString();
+  } catch (_error) {
+    return url;
+  }
 }
 
 function parseBingRss(xml) {
@@ -1124,6 +1201,27 @@ function inferListingFields(result, criteria) {
   };
 }
 
+function buildResearchLeadInput(link, criteria) {
+  const text = `${link.title || ""} ${link.snippet || ""}`;
+  const requestedType = criteria.type && criteria.type !== "all" ? criteria.type : "";
+  const type = requestedType || inferType(text, "");
+  const name = (link.title || `${type} research lead`)
+    .replace(/^Search\s+/i, "Source search: ")
+    .slice(0, 90)
+    .trim();
+
+  return {
+    name,
+    type,
+    location: criteria.location,
+    ask: 0,
+    incomeLabel: "Unknown",
+    income: 0,
+    notes: `Research lead from public source scout. Snippet: ${link.snippet || "No snippet available."} URL: ${link.url}`,
+    docs: []
+  };
+}
+
 function meaningfulLocationTokens(location) {
   return location.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2);
 }
@@ -1149,31 +1247,206 @@ function brokerSearchLinks(criteria) {
     {
       title: `Search BizBuySell for ${query}`,
       url: `https://www.bing.com/search?q=${encodeURIComponent(`site:bizbuysell.com ${query}`)}`,
-      snippet: "Manual source search. Import only after price and income are visible."
+      snippet: "Manual source search. Import only after price and income are visible.",
+      kind: "fallback_search"
     },
     {
       title: `Search BizQuest for ${query}`,
       url: `https://www.bing.com/search?q=${encodeURIComponent(`site:bizquest.com ${query}`)}`,
-      snippet: "Manual source search. Import only after price and income are visible."
+      snippet: "Manual source search. Import only after price and income are visible.",
+      kind: "fallback_search"
     },
     {
       title: `Search LoopNet/Crexi for ${query}`,
       url: `https://www.bing.com/search?q=${encodeURIComponent(`(site:loopnet.com OR site:crexi.com) ${query}`)}`,
-      snippet: "Manual source search for commercial assets and broker pages."
+      snippet: "Manual source search for commercial assets and broker pages.",
+      kind: "fallback_search"
     },
     {
       title: `General web search for ${query}`,
       url: `https://www.bing.com/search?q=${encoded}`,
-      snippet: "Broader search when broker pages do not expose importable listing details."
+      snippet: "Broader search when broker pages do not expose importable listing details.",
+      kind: "fallback_search"
     }
   ];
 }
 
+const stateSlugs = {
+  alabama: "alabama",
+  al: "alabama",
+  alaska: "alaska",
+  ak: "alaska",
+  arizona: "arizona",
+  az: "arizona",
+  arkansas: "arkansas",
+  ar: "arkansas",
+  california: "california",
+  ca: "california",
+  colorado: "colorado",
+  co: "colorado",
+  connecticut: "connecticut",
+  ct: "connecticut",
+  delaware: "delaware",
+  de: "delaware",
+  florida: "florida",
+  fl: "florida",
+  georgia: "georgia",
+  ga: "georgia",
+  illinois: "illinois",
+  il: "illinois",
+  indiana: "indiana",
+  in: "indiana",
+  kentucky: "kentucky",
+  ky: "kentucky",
+  louisiana: "louisiana",
+  la: "louisiana",
+  michigan: "michigan",
+  mi: "michigan",
+  missouri: "missouri",
+  mo: "missouri",
+  nevada: "nevada",
+  nv: "nevada",
+  "new york": "new-york",
+  ny: "new-york",
+  "north carolina": "north-carolina",
+  nc: "north-carolina",
+  ohio: "ohio",
+  oh: "ohio",
+  oklahoma: "oklahoma",
+  ok: "oklahoma",
+  pennsylvania: "pennsylvania",
+  pa: "pennsylvania",
+  tennessee: "tennessee",
+  tn: "tennessee",
+  texas: "texas",
+  tx: "texas",
+  virginia: "virginia",
+  va: "virginia",
+  washington: "washington",
+  wa: "washington"
+};
+
+const businessBrokerTypeSlugs = {
+  Laundromat: ["laundromat"],
+  "Car Wash": ["car-wash"],
+  "Auto Repair": ["auto-repair"],
+  Hotel: ["hotel", "motel"],
+  "Liquor Store": ["liquor-store"],
+  Industrial: ["warehouse", "manufacturing"]
+};
+
+function stateSlugFromLocation(location = "") {
+  const normalized = location.toLowerCase().replace(/[^a-z ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (stateSlugs[normalized]) return stateSlugs[normalized];
+  for (const token of normalized.split(" ")) {
+    if (stateSlugs[token]) return stateSlugs[token];
+  }
+  for (const [name, slug] of Object.entries(stateSlugs)) {
+    if (name.length > 2 && normalized.includes(name)) return slug;
+  }
+  return null;
+}
+
+function businessBrokerSlugsForType(type) {
+  if (type && type !== "all") return businessBrokerTypeSlugs[type] || [];
+  return Object.values(businessBrokerTypeSlugs).flat();
+}
+
+function textAmountAfter(label, text) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = text.match(new RegExp(`${escaped}\\s*:?\\s*\\$\\s*([0-9][0-9,.]*)`, "i"));
+  if (!match) return 0;
+  return Number(match[1].replace(/,/g, "")) || 0;
+}
+
+function parseBusinessBrokerListings(html, criteria, sourceUrl) {
+  const blocks = Array.from(html.matchAll(/<div class="result-item listing"[\s\S]*?(?=<div class="result-item listing"|<div id="fsboLinkEmail"|<\/form>)/g));
+  return blocks.map((blockMatch) => {
+    const block = blockMatch[0];
+    const rawText = stripHtml(block);
+    const title = decodeXml(block.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i)?.[1] || "").trim();
+    const locations = Array.from(block.matchAll(/<div class="location">([\s\S]*?)<\/div>/gi)).map((match) => stripHtml(match[1]));
+    const href = block.match(/href="([^"]*\/business-for-sale\/[^"]+)"/i)?.[1] || sourceUrl;
+    const ask = textAmountAfter("Asking Price", rawText);
+    const sde = textAmountAfter("Cash Flow (SDE)", rawText) || textAmountAfter("Cash Flow", rawText);
+    const revenue = textAmountAfter("Revenue", rawText) || textAmountAfter("Gross Revenue", rawText);
+    const url = absoluteUrl(href, "https://www.businessbroker.net");
+    const type = inferType(`${title} ${rawText}`, criteria.type);
+    const incomeLabel = sde ? "SDE" : revenue ? "Revenue" : "Unknown";
+    const income = sde || revenue || 0;
+    const sourceNote = [
+      "BusinessBroker.net public listing scout.",
+      `Visible ask: ${ask ? `$${ask.toLocaleString()}` : "not disclosed"}.`,
+      `${incomeLabel === "Unknown" ? "Cash flow/revenue not disclosed" : `Visible ${incomeLabel}: $${income.toLocaleString()}`}.`,
+      `URL: ${url}`
+    ].join(" ");
+
+    if (!title || !ask) return null;
+    if (criteria.maxAsk && ask > criteria.maxAsk) return null;
+
+    return {
+      input: {
+        name: title,
+        type,
+        location: locations[0] || criteria.location,
+        ask,
+        incomeLabel,
+        income,
+        notes: `${sourceNote} Snippet: ${rawText.slice(0, 900)}`,
+        docs: []
+      },
+      url,
+      sourceName: "BusinessBroker.net"
+    };
+  }).filter(Boolean);
+}
+
+async function runBusinessBrokerSearch(criteria) {
+  const stateSlug = stateSlugFromLocation(criteria.location);
+  if (!stateSlug) return { results: [], sourceLinks: [] };
+
+  const seen = new Set();
+  const results = [];
+  const sourceLinks = [];
+  for (const typeSlug of businessBrokerSlugsForType(criteria.type).slice(0, 8)) {
+    if (results.length >= criteria.limit) break;
+    const url = `https://www.businessbroker.net/keyword/${stateSlug}/${typeSlug}-businesses-for-sale.aspx`;
+    sourceLinks.push({
+      title: `BusinessBroker.net ${criteria.location} ${typeSlug.replace(/-/g, " ")} listings`,
+      url,
+      snippet: "Direct public listing page scanned by Deal Radar.",
+      kind: "source_page"
+    });
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 DealRadar/0.1",
+          "Accept": "text/html,application/xhtml+xml"
+        }
+      });
+      if (!response.ok) continue;
+      const html = await response.text();
+      for (const result of parseBusinessBrokerListings(html, criteria, url)) {
+        if (seen.has(result.url)) continue;
+        seen.add(result.url);
+        results.push(result);
+        if (results.length >= criteria.limit) break;
+      }
+    } catch (_error) {
+      continue;
+    }
+  }
+  return { results, sourceLinks };
+}
+
 async function runPublicWebSearch(criteria) {
+  const direct = await runBusinessBrokerSearch(criteria);
+  if (direct.results.length >= criteria.limit) return direct;
+
   const typeTerms = criteria.type && criteria.type !== "all"
     ? [criteria.type]
     : ["laundromat", "car wash", "auto repair", "hotel", "liquor store", "industrial"];
-  const sourceTerms = ["BizBuySell", "BizQuest", "LoopNet", "Crexi", "Sunbelt Network"];
+  const sourceTerms = ["BusinessBroker.net", "BizBuySell", "BizQuest", "LoopNet", "Crexi", "Sunbelt Network"];
   const queries = typeTerms.flatMap((type) =>
     sourceTerms.map((source) => ({
       type,
@@ -1181,8 +1454,8 @@ async function runPublicWebSearch(criteria) {
     }))
   );
   const seen = new Set();
-  const results = [];
-  const sourceLinks = [];
+  const results = [...direct.results];
+  const sourceLinks = [...direct.sourceLinks];
 
   for (const search of queries.slice(0, 18)) {
     const url = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(search.query)}`;
@@ -1198,7 +1471,7 @@ async function runPublicWebSearch(criteria) {
       const typeSignal = search.type.toLowerCase().split(/\s+/).some((token) => haystack.includes(token));
       if (!locationSignal && !typeSignal) continue;
       if (!haystack.includes("sale") && !haystack.includes("business") && !haystack.includes("listing")) continue;
-      sourceLinks.push({ title: item.title, url: item.link, snippet: item.description });
+      sourceLinks.push({ title: item.title, url: item.link, snippet: item.description, kind: "candidate" });
       const input = inferListingFields(item, criteria);
       if (!input.ask || !input.income) continue;
       if (criteria.maxAsk && input.ask > criteria.maxAsk) continue;
@@ -1338,8 +1611,13 @@ app.delete("/api/deals/:id", async (req, res, next) => {
 app.delete("/api/deals", async (req, res, next) => {
   try {
     const source = String(req.query.source || "").trim();
-    if (source !== "web") {
-      const error = new Error("Only source=web can be bulk deleted.");
+    if (source === "scout") {
+      const deleted = await deleteDealsBySources(["web", "research"]);
+      res.json({ deleted });
+      return;
+    }
+    if (!["web", "research"].includes(source)) {
+      const error = new Error("Only source=web, source=research, or source=scout can be bulk deleted.");
       error.status = 400;
       throw error;
     }
@@ -1480,7 +1758,8 @@ app.post("/api/agent/run-all", async (req, res, next) => {
       throw error;
     }
 
-    const searches = (await activeSearchProfileRows()).map(searchProfileFromRow);
+    const savedSearches = (await activeSearchProfileRows()).map(searchProfileFromRow);
+    const searches = savedSearches.length ? savedSearches : defaultSearchProfiles;
     const runs = [];
     for (const search of searches.slice(0, 10)) {
       const result = await runSearchAgent(
@@ -1490,11 +1769,11 @@ app.post("/api/agent/run-all", async (req, res, next) => {
           maxAsk: search.maxAsk,
           limit: search.limit
         },
-        search.id
+        search.id || null
       );
       runs.push(result.run);
     }
-    res.status(201).json({ count: runs.length, runs });
+    res.status(201).json({ count: runs.length, mode: savedSearches.length ? "saved_searches" : "recommended_defaults", runs });
   } catch (error) {
     next(error);
   }

@@ -730,11 +730,12 @@
           <button class="secondary-action" id="open-web-search" type="button">Scout Public Sources</button>
           <button class="secondary-action" id="open-agent" type="button">Search Agent</button>
           <button class="secondary-action" id="open-image-import" type="button">Upload Screenshot</button>
-          <button class="danger-action quiet-action" id="clear-web-leads" type="button">Clear Web Leads</button>
+          <button class="danger-action quiet-action" id="clear-web-leads" type="button">Clear Scout Leads</button>
           <button class="primary-action" id="open-add-deal" type="button">Add Deal</button>
         </div>
       </div>
       <div class="source-strip" aria-label="Current public scout sources">
+        <span class="source-chip">BusinessBroker.net</span>
         <span class="source-chip">BizBuySell</span>
         <span class="source-chip">BizQuest</span>
         <span class="source-chip">LoopNet</span>
@@ -752,10 +753,10 @@
         <div class="agent-head">
           <div>
             <h2>Search Agent</h2>
-            <p>Saved searches repeatedly scout BizBuySell, BizQuest, LoopNet, Crexi, Sunbelt Network, and broader public results. Runs record source links even when no listing is clean enough to import.</p>
+            <p>Saved searches scan BusinessBroker.net directly where possible, then use public search results for BizBuySell, BizQuest, LoopNet, Crexi, Sunbelt Network, and broader source discovery.</p>
           </div>
           <div class="action-buttons">
-            <button class="secondary-action" id="run-all-searches" type="button">Run All</button>
+            <button class="secondary-action" id="run-all-searches" type="button">Run Scout</button>
             <button class="primary-action" id="open-agent-secondary" type="button">New Search</button>
           </div>
         </div>
@@ -841,6 +842,8 @@
             <select id="deal-type" name="type" required>
               <option value="Laundromat">Laundromat</option>
               <option value="Hotel">Hotel</option>
+              <option value="Car Wash">Car Wash</option>
+              <option value="Auto Repair">Auto Repair</option>
               <option value="Liquor Store">Liquor Store</option>
               <option value="Industrial">Industrial</option>
             </select>
@@ -917,7 +920,7 @@
       <div class="modal-header">
         <div>
           <h2 id="web-search-title">Scout Public Sources</h2>
-          <p>Search public broker/listing pages and import only candidates with visible price and income signals. If nothing is importable, Deal Radar will show source links to inspect manually.</p>
+          <p>Scan public broker/listing pages and import real candidate listings. Deal Radar marks weak or missing financials as low confidence instead of pretending they are underwritten.</p>
         </div>
         <button class="icon-button" id="close-web-search" type="button" aria-label="Close web search form">&times;</button>
       </div>
@@ -948,7 +951,7 @@
             <input id="web-limit" name="limit" type="number" min="1" max="12" value="6">
           </div>
         </div>
-        <div class="memo-box">This is a public-source scout, not a true listing feed. Treat imported values as unverified until you inspect the listing and source documents.</div>
+        <div class="memo-box">Current direct scanner: BusinessBroker.net. Broader broker sites are handled as source discovery unless a result exposes enough listing data to import.</div>
         <div class="memo-box web-search-status" id="web-search-status"></div>
         <div class="form-actions">
           <button class="secondary-action" id="cancel-web-search" type="button">Cancel</button>
@@ -1044,7 +1047,8 @@
       "Car Wash": "Equipment-heavy local service assets where capex, traffic, and site quality drive returns.",
       "Auto Repair": "Recurring local service demand with technician dependency, equipment, lease, and reputation risk.",
       "Liquor Store": "Local retail cash flow with inventory controls, licensing, and margin expansion signals.",
-      "Industrial": "Small-bay warehouses and service industrial with tenant durability and rent growth."
+      "Industrial": "Small-bay warehouses and service industrial with tenant durability and rent growth.",
+      "Research Lead": "Relevant source leads that need contact discovery, documents, and field verification."
     };
 
     const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -1127,6 +1131,16 @@
       if (!value) return "Never";
       return new Date(value).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
     }
+    function moneyOrUnknown(value) {
+      return Number(value) > 0 ? compactCurrency.format(value) : "Unknown";
+    }
+    function fullMoneyOrUnknown(value) {
+      return Number(value) > 0 ? currency.format(value) : "Unknown";
+    }
+    function incomeOrUnknown(deal, formatter = compactCurrency) {
+      if (deal.incomeLabel === "Keys") return deal.income || "Unknown";
+      return Number(deal.income) > 0 ? formatter.format(deal.income) : "Unknown";
+    }
     function matchesSearch(deal, term) {
       if (!term) return true;
       const haystack = [deal.name, deal.type, deal.location, deal.metric, deal.summary, ...deal.tags, ...deal.reasons, ...deal.missing].join(" ").toLowerCase();
@@ -1203,8 +1217,8 @@
             <span class="badge ${scoreClass(deal.score)}">${deal.score} Score</span>
           </div>
           <div class="deal-stats">
-            <div class="deal-stat"><span>Ask</span><strong>${compactCurrency.format(deal.ask)}</strong></div>
-            <div class="deal-stat"><span>${deal.incomeLabel}</span><strong>${deal.incomeLabel === "Keys" ? deal.income : compactCurrency.format(deal.income)}</strong></div>
+            <div class="deal-stat"><span>Ask</span><strong>${moneyOrUnknown(deal.ask)}</strong></div>
+            <div class="deal-stat"><span>${deal.incomeLabel}</span><strong>${incomeOrUnknown(deal)}</strong></div>
             <div class="deal-stat"><span>${deal.metricLabel}</span><strong>${deal.metric}</strong></div>
           </div>
           <p class="insight">${deal.summary}</p>
@@ -1226,7 +1240,7 @@
           <div class="section-header">
             <div>
               <h2>${type === "Industrial" ? "Industrial Properties" : type === "Auto Repair" ? "Auto Repair Shops" : type === "Car Wash" ? "Car Washes" : `${type}s`}</h2>
-              <p>${categoryCopy[type]}</p>
+              <p>${categoryCopy[type] || "Relevant leads queued for contact discovery and verification."}</p>
             </div>
             <span class="badge watch">${items.length} visible</span>
           </div>
@@ -1288,8 +1302,8 @@
       document.getElementById("panel-verified").className = `badge ${deal.verified ? "high" : confidenceClass(deal.confidence)}`;
       document.getElementById("confidence-bar").style.setProperty("--value", `${deal.confidence}%`);
       document.getElementById("panel-stats").innerHTML = `
-        <div class="panel-stat"><span>Asking Price</span><strong>${currency.format(deal.ask)}</strong></div>
-        <div class="panel-stat"><span>${deal.incomeLabel}</span><strong>${deal.incomeLabel === "Keys" ? deal.income : currency.format(deal.income)}</strong></div>
+        <div class="panel-stat"><span>Asking Price</span><strong>${fullMoneyOrUnknown(deal.ask)}</strong></div>
+        <div class="panel-stat"><span>${deal.incomeLabel}</span><strong>${incomeOrUnknown(deal, currency)}</strong></div>
         <div class="panel-stat"><span>${deal.metricLabel}</span><strong>${deal.metric}</strong></div>
         <div class="panel-stat"><span>Missing Items</span><strong>${deal.missing.length}</strong></div>
       `;
@@ -1470,6 +1484,9 @@
       document.getElementById("web-search-modal").setAttribute("aria-hidden", "false");
       webSearchStatus.style.display = "none";
       webSearchStatus.innerHTML = "";
+      if (!document.getElementById("web-location").value.trim()) {
+        document.getElementById("web-location").value = "Florida";
+      }
       document.getElementById("web-location").focus();
     }
 
@@ -1650,13 +1667,13 @@
 
     async function clearWebLeadsViaApi() {
       if (apiBase === null) {
-        deals = deals.filter((deal) => deal.source !== "web");
+        deals = deals.filter((deal) => !["web", "research"].includes(deal.source));
         saveUserDeals();
         return 0;
       }
-      const response = await fetch("/api/deals?source=web", { method: "DELETE" });
+      const response = await fetch("/api/deals?source=scout", { method: "DELETE" });
       const result = await readJson(response);
-      if (!response.ok) throw new Error(result.error || "Could not clear web leads.");
+      if (!response.ok) throw new Error(result.error || "Could not clear scout leads.");
       return result.deleted || 0;
     }
 
@@ -1726,12 +1743,8 @@
     });
     document.getElementById("run-all-searches").addEventListener("click", async (event) => {
       const button = event.currentTarget;
-      if (!searchProfiles.length) {
-        openAgentModal();
-        return;
-      }
       button.disabled = true;
-      button.textContent = "Running...";
+      button.textContent = "Scouting...";
       try {
         await runAllSearchesViaApi();
         await refreshDealsAndAgent();
@@ -1739,7 +1752,7 @@
         alert(error.message);
       } finally {
         button.disabled = false;
-        button.textContent = "Run All";
+        button.textContent = "Run Scout";
       }
     });
     findContactButton.addEventListener("click", () => {
@@ -1786,22 +1799,23 @@
       }
     });
     document.getElementById("clear-web-leads").addEventListener("click", async () => {
-      const count = deals.filter((deal) => deal.source === "web").length;
-      if (!count || !confirm(`Delete ${count} imported web leads? Manual, CSV, and image deals will stay.`)) return;
+      const count = deals.filter((deal) => ["web", "research"].includes(deal.source)).length;
+      if (!count || !confirm(`Delete ${count} scout leads? Manual, CSV, and image deals will stay.`)) return;
       const button = document.getElementById("clear-web-leads");
       button.disabled = true;
       button.textContent = "Clearing...";
       try {
         await clearWebLeadsViaApi();
-        deals = deals.filter((deal) => deal.source !== "web");
+        deals = deals.filter((deal) => !["web", "research"].includes(deal.source));
         selectedId = deals[0]?.id;
         renderCounts();
         selectDeal(selectedId);
+        openWebSearchModal();
       } catch (error) {
         alert(error.message);
       } finally {
         button.disabled = false;
-        button.textContent = "Clear Web Leads";
+        button.textContent = "Clear Scout Leads";
       }
     });
     document.getElementById("close-add-deal").addEventListener("click", closeModal);
