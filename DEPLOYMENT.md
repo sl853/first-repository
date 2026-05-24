@@ -92,3 +92,24 @@ or:
 ```
 
 Use this later with a Render Cron Job or another scheduler to run saved searches daily or weekly.
+
+## Search Brain
+
+The long-term backend is the data memory layer, not the dashboard. Search runs now write observations and corrections that can become training/evaluation data.
+
+Useful endpoints:
+
+```text
+GET /api/brain/summary
+GET /api/brain/observations
+GET /api/brain/corrections
+POST /api/brain/corrections
+GET /api/brain/training-data
+```
+
+The training export returns JSONL with:
+
+- source observations: where claims came from and what the first extractor saw
+- field corrections: what a human or later verification changed
+
+This is where Deal Radar learns patterns like broker pages using "cash flow" when the safer underwriting interpretation is SDE, or listings omitting whether real estate is included.

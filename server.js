@@ -25,6 +25,8 @@ let pool;
 let insertDeal;
 let insertSearchProfile;
 let insertSearchRun;
+let insertObservation;
+let insertCorrection;
 
 const createDealsTableSql = `
   CREATE TABLE IF NOT EXISTS deals (
@@ -79,6 +81,36 @@ const createSearchRunsTableSql = `
   );
 `;
 
+const createObservationsTableSql = `
+  CREATE TABLE IF NOT EXISTS source_observations (
+    id TEXT PRIMARY KEY,
+    run_id TEXT,
+    search_id TEXT,
+    source_name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    title TEXT NOT NULL,
+    snippet TEXT NOT NULL,
+    raw_claim_text TEXT NOT NULL,
+    extracted_json TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const createCorrectionsTableSql = `
+  CREATE TABLE IF NOT EXISTS data_corrections (
+    id TEXT PRIMARY KEY,
+    observation_id TEXT,
+    deal_id TEXT,
+    field_name TEXT NOT NULL,
+    observed_value TEXT NOT NULL,
+    corrected_value TEXT NOT NULL,
+    correction_type TEXT NOT NULL,
+    notes TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
 if (usePostgres) {
   pool = new Pool({
     connectionString: databaseUrl,
@@ -87,12 +119,16 @@ if (usePostgres) {
   await pool.query(createDealsTableSql);
   await pool.query(createSearchProfilesTableSql);
   await pool.query(createSearchRunsTableSql);
+  await pool.query(createObservationsTableSql);
+  await pool.query(createCorrectionsTableSql);
 } else {
   const { DatabaseSync } = await import("node:sqlite");
   db = new DatabaseSync(dbPath);
   db.exec(createDealsTableSql);
   db.exec(createSearchProfilesTableSql);
   db.exec(createSearchRunsTableSql);
+  db.exec(createObservationsTableSql);
+  db.exec(createCorrectionsTableSql);
   insertDeal = db.prepare(`
     INSERT OR REPLACE INTO deals (
       id, source, name, type, location, ask, income_label, income, metric_label,
@@ -109,6 +145,18 @@ if (usePostgres) {
   insertSearchRun = db.prepare(`
     INSERT INTO search_runs (
       id, search_id, criteria_json, status, imported_count, existing_count, source_links_json, message
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  insertObservation = db.prepare(`
+    INSERT OR IGNORE INTO source_observations (
+      id, run_id, search_id, source_name, url, title, snippet, raw_claim_text, extracted_json, status
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  insertCorrection = db.prepare(`
+    INSERT INTO data_corrections (
+      id, observation_id, deal_id, field_name, observed_value, corrected_value, correction_type, notes
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
@@ -385,6 +433,36 @@ function searchRunFromRow(row) {
   };
 }
 
+function observationFromRow(row) {
+  return {
+    id: row.id,
+    runId: row.run_id,
+    searchId: row.search_id,
+    sourceName: row.source_name,
+    url: row.url,
+    title: row.title,
+    snippet: row.snippet,
+    rawClaimText: row.raw_claim_text,
+    extracted: JSON.parse(row.extracted_json || "{}"),
+    status: row.status,
+    createdAt: row.created_at
+  };
+}
+
+function correctionFromRow(row) {
+  return {
+    id: row.id,
+    observationId: row.observation_id,
+    dealId: row.deal_id,
+    fieldName: row.field_name,
+    observedValue: row.observed_value,
+    correctedValue: row.corrected_value,
+    correctionType: row.correction_type,
+    notes: row.notes,
+    createdAt: row.created_at
+  };
+}
+
 async function insertDealRecord(deal) {
   const values = toRow(deal);
   if (usePostgres) {
@@ -483,6 +561,61 @@ async function insertSearchRunRecord(run) {
   insertSearchRun.run(...values);
 }
 
+async function insertObservationRecord(observation) {
+  const values = [
+    observation.id,
+    observation.runId || null,
+    observation.searchId || null,
+    observation.sourceName,
+    observation.url,
+    observation.title,
+    observation.snippet,
+    observation.rawClaimText,
+    JSON.stringify(observation.extracted || {}),
+    observation.status
+  ];
+  if (usePostgres) {
+    await pool.query(
+      `
+        INSERT INTO source_observations (
+          id, run_id, search_id, source_name, url, title, snippet, raw_claim_text, extracted_json, status
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (id) DO NOTHING
+      `,
+      values
+    );
+    return;
+  }
+  insertObservation.run(...values);
+}
+
+async function insertCorrectionRecord(correction) {
+  const values = [
+    correction.id,
+    correction.observationId || null,
+    correction.dealId || null,
+    correction.fieldName,
+    correction.observedValue,
+    correction.correctedValue,
+    correction.correctionType,
+    correction.notes
+  ];
+  if (usePostgres) {
+    await pool.query(
+      `
+        INSERT INTO data_corrections (
+          id, observation_id, deal_id, field_name, observed_value, corrected_value, correction_type, notes
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `,
+      values
+    );
+    return;
+  }
+  insertCorrection.run(...values);
+}
+
 async function allDealRows() {
   if (usePostgres) {
     const result = await pool.query("SELECT * FROM deals ORDER BY created_at DESC, score DESC");
@@ -513,6 +646,45 @@ async function recentSearchRunRows(limit = 20) {
     return result.rows;
   }
   return db.prepare("SELECT * FROM search_runs ORDER BY created_at DESC LIMIT ?").all(limit);
+}
+
+async function recentObservationRows(limit = 100) {
+  if (usePostgres) {
+    const result = await pool.query("SELECT * FROM source_observations ORDER BY created_at DESC LIMIT $1", [limit]);
+    return result.rows;
+  }
+  return db.prepare("SELECT * FROM source_observations ORDER BY created_at DESC LIMIT ?").all(limit);
+}
+
+async function recentCorrectionRows(limit = 100) {
+  if (usePostgres) {
+    const result = await pool.query("SELECT * FROM data_corrections ORDER BY created_at DESC LIMIT $1", [limit]);
+    return result.rows;
+  }
+  return db.prepare("SELECT * FROM data_corrections ORDER BY created_at DESC LIMIT ?").all(limit);
+}
+
+async function brainSummary() {
+  if (usePostgres) {
+    const [observations, corrections, runs, sources] = await Promise.all([
+      pool.query("SELECT COUNT(*)::int AS count FROM source_observations"),
+      pool.query("SELECT COUNT(*)::int AS count FROM data_corrections"),
+      pool.query("SELECT COUNT(*)::int AS count FROM search_runs"),
+      pool.query("SELECT source_name, COUNT(*)::int AS count FROM source_observations GROUP BY source_name ORDER BY count DESC")
+    ]);
+    return {
+      observations: observations.rows[0].count,
+      corrections: corrections.rows[0].count,
+      searchRuns: runs.rows[0].count,
+      sources: sources.rows
+    };
+  }
+  return {
+    observations: db.prepare("SELECT COUNT(*) AS count FROM source_observations").get().count,
+    corrections: db.prepare("SELECT COUNT(*) AS count FROM data_corrections").get().count,
+    searchRuns: db.prepare("SELECT COUNT(*) AS count FROM search_runs").get().count,
+    sources: db.prepare("SELECT source_name, COUNT(*) AS count FROM source_observations GROUP BY source_name ORDER BY count DESC").all()
+  };
 }
 
 async function dealRowById(id) {
@@ -744,6 +916,87 @@ function buildSearchProfile(input = {}) {
   };
 }
 
+function sourceNameForUrl(url = "", title = "") {
+  const text = `${url} ${title}`.toLowerCase();
+  if (text.includes("bizbuysell")) return "BizBuySell";
+  if (text.includes("bizquest")) return "BizQuest";
+  if (text.includes("loopnet")) return "LoopNet";
+  if (text.includes("crexi")) return "Crexi";
+  if (text.includes("sunbelt")) return "Sunbelt Network";
+  if (text.includes("bing.com/search")) return "Bing source search";
+  return "Public web";
+}
+
+function observationIdFor(url, runId, status) {
+  const base = Buffer.from(`${runId}:${status}:${url}`).toString("base64url").slice(0, 42);
+  return `obs-${base}`;
+}
+
+async function recordSearchObservations({ run, searchId, found, sourceLinks }) {
+  const seen = new Set();
+  const records = [];
+
+  for (const result of found) {
+    if (!result.url || seen.has(result.url)) continue;
+    seen.add(result.url);
+    records.push({
+      id: observationIdFor(result.url, run.id, "extracted"),
+      runId: run.id,
+      searchId,
+      sourceName: sourceNameForUrl(result.url, result.input?.name),
+      url: result.url,
+      title: result.input?.name || "Extracted listing",
+      snippet: result.input?.notes || "",
+      rawClaimText: result.input?.notes || "",
+      extracted: result.input || {},
+      status: "extracted_claim"
+    });
+  }
+
+  for (const link of sourceLinks) {
+    if (!link.url || seen.has(link.url)) continue;
+    seen.add(link.url);
+    records.push({
+      id: observationIdFor(link.url, run.id, "source"),
+      runId: run.id,
+      searchId,
+      sourceName: sourceNameForUrl(link.url, link.title),
+      url: link.url,
+      title: link.title || "Source link",
+      snippet: link.snippet || "",
+      rawClaimText: `${link.title || ""}\n${link.snippet || ""}`.trim(),
+      extracted: {},
+      status: "source_link"
+    });
+  }
+
+  for (const record of records) await insertObservationRecord(record);
+  return records.length;
+}
+
+function buildCorrection(input = {}) {
+  const fieldName = String(input.fieldName || input.field_name || "").trim();
+  const observedValue = String(input.observedValue || input.observed_value || "").trim();
+  const correctedValue = String(input.correctedValue || input.corrected_value || "").trim();
+  const correctionType = String(input.correctionType || input.correction_type || "field_correction").trim();
+  const notes = String(input.notes || "").trim();
+  if (!fieldName || !observedValue || !correctedValue) {
+    const error = new Error("fieldName, observedValue, and correctedValue are required.");
+    error.status = 400;
+    throw error;
+  }
+  return {
+    id: `correction-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+    observationId: input.observationId || input.observation_id || null,
+    dealId: input.dealId || input.deal_id || null,
+    fieldName,
+    observedValue,
+    correctedValue,
+    correctionType,
+    notes
+  };
+}
+
 async function runSearchAgent(criteria, searchId = null) {
   const { results: found, sourceLinks } = await runPublicWebSearch(criteria);
   const created = [];
@@ -774,6 +1027,7 @@ async function runSearchAgent(criteria, searchId = null) {
     message
   };
   await insertSearchRunRecord(run);
+  await recordSearchObservations({ run, searchId, found, sourceLinks: run.sourceLinks });
   if (searchId) await updateSearchLastRun(searchId);
 
   return {
@@ -1120,6 +1374,78 @@ app.get("/api/search-runs", async (req, res, next) => {
     const limit = Math.min(50, Math.max(1, Number(req.query.limit || 20)));
     const runs = (await recentSearchRunRows(limit)).map(searchRunFromRow);
     res.json({ runs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/brain/summary", async (_req, res, next) => {
+  try {
+    res.json({ summary: await brainSummary() });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/brain/observations", async (req, res, next) => {
+  try {
+    const limit = Math.min(500, Math.max(1, Number(req.query.limit || 100)));
+    const observations = (await recentObservationRows(limit)).map(observationFromRow);
+    res.json({ observations });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/brain/corrections", async (req, res, next) => {
+  try {
+    const limit = Math.min(500, Math.max(1, Number(req.query.limit || 100)));
+    const corrections = (await recentCorrectionRows(limit)).map(correctionFromRow);
+    res.json({ corrections });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/brain/corrections", async (req, res, next) => {
+  try {
+    const correction = buildCorrection(req.body);
+    await insertCorrectionRecord(correction);
+    res.status(201).json({ correction });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/brain/training-data", async (req, res, next) => {
+  try {
+    const limit = Math.min(1000, Math.max(1, Number(req.query.limit || 500)));
+    const observations = (await recentObservationRows(limit)).map(observationFromRow);
+    const corrections = (await recentCorrectionRows(limit)).map(correctionFromRow);
+    const lines = [
+      ...observations.map((observation) => ({
+        task: "source_observation",
+        sourceName: observation.sourceName,
+        url: observation.url,
+        title: observation.title,
+        rawClaimText: observation.rawClaimText,
+        extracted: observation.extracted,
+        status: observation.status,
+        createdAt: observation.createdAt
+      })),
+      ...corrections.map((correction) => ({
+        task: "field_correction",
+        fieldName: correction.fieldName,
+        observedValue: correction.observedValue,
+        correctedValue: correction.correctedValue,
+        correctionType: correction.correctionType,
+        notes: correction.notes,
+        observationId: correction.observationId,
+        dealId: correction.dealId,
+        createdAt: correction.createdAt
+      }))
+    ].map((item) => JSON.stringify(item)).join("\n");
+    res.type("text/plain").send(`${lines}\n`);
   } catch (error) {
     next(error);
   }
