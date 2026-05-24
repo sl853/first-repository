@@ -258,6 +258,53 @@
     .metric span { color: var(--muted); font-size: 13px; }
     .metric strong { display: block; margin-top: 8px; font-size: 28px; }
 
+    .agent-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 18px;
+      margin-bottom: 30px;
+    }
+    .agent-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .agent-head h2 { margin: 0; font-size: 20px; }
+    .agent-head p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .agent-list {
+      display: grid;
+      gap: 10px;
+    }
+    .agent-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+    .agent-row strong { display: block; margin-bottom: 4px; }
+    .agent-row span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .run-list {
+      display: grid;
+      gap: 9px;
+      max-height: 220px;
+      overflow: auto;
+    }
+    .run-row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #090d13;
+      padding: 11px;
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .run-row a { color: #9ed0ff; font-weight: 800; }
+
     .section-header {
       display: flex;
       align-items: flex-end;
@@ -562,6 +609,7 @@
       main { padding: 22px; }
       .topbar, .section-header { flex-direction: column; align-items: flex-start; }
       .metrics, .deal-grid { grid-template-columns: 1fr; }
+      .agent-head, .agent-row { grid-template-columns: 1fr; }
       .action-row { align-items: flex-start; flex-direction: column; }
       .action-buttons { justify-content: flex-start; }
       .search-panel { grid-template-columns: 1fr; }
@@ -621,6 +669,7 @@
         <p>Manual entry is the v1 ingestion path: add a messy listing, generate a score, and see what diligence is missing.</p>
         <div class="action-buttons">
           <button class="secondary-action" id="open-web-search" type="button">Scout Public Sources</button>
+          <button class="secondary-action" id="open-agent" type="button">Search Agent</button>
           <button class="secondary-action" id="open-image-import" type="button">Upload Screenshot</button>
           <button class="danger-action" id="clear-web-leads" type="button">Clear Web Leads</button>
           <button class="primary-action" id="open-add-deal" type="button">Add Deal</button>
@@ -631,6 +680,19 @@
         <div class="metric"><span>Avg Deal Score</span><strong id="metric-score">0</strong></div>
         <div class="metric"><span>Avg Confidence</span><strong id="metric-confidence">0%</strong></div>
         <div class="metric"><span>Missing Items</span><strong id="metric-missing">0</strong></div>
+      </section>
+      <section class="agent-panel" aria-label="Search agent">
+        <div class="agent-head">
+          <div>
+            <h2>Search Agent</h2>
+            <p>Saved searches run repeatable public-source scouts, record every run, and import only leads with visible price and income signals.</p>
+          </div>
+          <div class="action-buttons">
+            <button class="secondary-action" id="run-all-searches" type="button">Run All</button>
+            <button class="primary-action" id="open-agent-secondary" type="button">New Search</button>
+          </div>
+        </div>
+        <div class="agent-list" id="agent-list"></div>
       </section>
       <div id="sections"></div>
       <div class="empty-state" id="empty-state">No listings match that search. Try asset type, city, score, or one of the missing data flags.</div>
@@ -819,6 +881,67 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="agent-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="agent-modal-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="agent-modal-title">Create Search Agent</h2>
+          <p>Save a repeatable search. Run it manually now, or later attach the run-all endpoint to a scheduled job.</p>
+        </div>
+        <button class="icon-button" id="close-agent" type="button" aria-label="Close search agent form">&times;</button>
+      </div>
+      <form class="deal-form" id="agent-form">
+        <div class="form-grid">
+          <div class="field">
+            <label for="agent-name">Search name</label>
+            <input id="agent-name" name="name" required placeholder="Florida laundromats under $1.5M">
+          </div>
+          <div class="field">
+            <label for="agent-type">Asset type</label>
+            <select id="agent-type" name="type">
+              <option value="all">All priority targets</option>
+              <option value="Laundromat">Laundromat</option>
+              <option value="Car Wash">Car Wash</option>
+              <option value="Auto Repair">Auto Repair</option>
+              <option value="Hotel">Hotel</option>
+              <option value="Liquor Store">Liquor Store</option>
+              <option value="Industrial">Industrial</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="agent-location">Location</label>
+            <input id="agent-location" name="location" required placeholder="Florida, DFW, Phoenix AZ">
+          </div>
+          <div class="field">
+            <label for="agent-max-ask">Max asking price</label>
+            <input id="agent-max-ask" name="maxAsk" type="number" min="0" step="50000" placeholder="No cap">
+          </div>
+          <div class="field">
+            <label for="agent-limit">Import limit</label>
+            <input id="agent-limit" name="limit" type="number" min="1" max="12" value="6">
+          </div>
+          <div class="field">
+            <label for="agent-frequency">Frequency</label>
+            <select id="agent-frequency" name="frequency">
+              <option value="manual">Manual</option>
+              <option value="daily">Daily target</option>
+              <option value="weekly">Weekly target</option>
+            </select>
+          </div>
+        </div>
+        <div class="memo-box">The agent records every run and keeps source links even when no listing is clean enough to import.</div>
+        <div class="form-actions">
+          <button class="secondary-action" id="cancel-agent" type="button">Cancel</button>
+          <button class="primary-action" type="submit">Save Search</button>
+        </div>
+      </form>
+      <div class="panel-section">
+        <h3>Recent Agent Runs</h3>
+        <div class="run-list" id="agent-runs"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const sampleDeals = [
       { id: "spin-cycle-express", name: "SpinCycle Express", type: "Laundromat", location: "Phoenix, AZ", ask: 840000, incomeLabel: "NOI", income: 156000, metricLabel: "Cap", metric: "18.6%", score: 92, confidence: 86, verified: true, summary: "Strong equipment base, below-market wash pricing, and room for unattended hours expansion.", tags: ["Lease Quality", "Automation", "Value Add"], reasons: ["Reported NOI supports a high implied yield at the asking price.", "Equipment list is mostly complete and supports lower near-term capex risk.", "Pricing and service mix leave a clear value-add path through card readers and wash-dry-fold."], missing: ["Utility bills by month", "Lease assignment consent", "Machine-level maintenance history"], memo: "Attractive laundromat acquisition with strong cash yield and identifiable operational upside. Proceed to LOI only after utility normalization and landlord assignment confirmation." },
@@ -835,6 +958,8 @@
     const apiBase = window.location.protocol === "file:" || staticPreviewHosts.includes(window.location.hostname) ? null : "";
     const savedDeals = loadLocalDeals();
     let deals = [...savedDeals];
+    let searchProfiles = [];
+    let searchRuns = [];
 
     const categoryCopy = {
       "Laundromat": "Cash-flowing local operators with automation and pickup-delivery upside.",
@@ -859,6 +984,8 @@
     const sourceLinkEl = document.getElementById("panel-source-link");
     const deleteSelectedButton = document.getElementById("delete-selected");
     const webSearchStatus = document.getElementById("web-search-status");
+    const agentListEl = document.getElementById("agent-list");
+    const agentRunsEl = document.getElementById("agent-runs");
 
     function scoreClass(value) {
       if (value >= 88) return "high";
@@ -886,6 +1013,10 @@
     function sourceUrlFor(deal) {
       return String(deal.summary || "").match(/https?:\/\/\S+/)?.[0]?.replace(/[).,;]+$/, "") || "";
     }
+    function formatTime(value) {
+      if (!value) return "Never";
+      return new Date(value).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    }
     function matchesSearch(deal, term) {
       if (!term) return true;
       const haystack = [deal.name, deal.type, deal.location, deal.metric, deal.summary, ...deal.tags, ...deal.reasons, ...deal.missing].join(" ").toLowerCase();
@@ -908,6 +1039,41 @@
       document.getElementById("count-all").textContent = deals.length;
       ["Laundromat", "Hotel", "Car Wash", "Auto Repair", "Liquor Store", "Industrial"].forEach((type) => {
         document.getElementById(`count-${slug(type)}`).textContent = deals.filter((deal) => deal.type === type).length;
+      });
+    }
+    function renderAgentPanel() {
+      if (!searchProfiles.length) {
+        agentListEl.innerHTML = `
+          <div class="run-row">
+            No saved searches yet. Create one for a market and asset type, then run it whenever you want the agent to scout public sources.
+          </div>
+        `;
+      } else {
+        agentListEl.innerHTML = searchProfiles.map((search) => `
+          <div class="agent-row">
+            <div>
+              <strong>${escapeHtml(search.name)}</strong>
+              <span>${escapeHtml(search.type === "all" ? "All priority targets" : search.type)} in ${escapeHtml(search.location)} - Max ask ${search.maxAsk ? compactCurrency.format(search.maxAsk) : "none"} - Last run ${formatTime(search.lastRunAt)}</span>
+            </div>
+            <button class="secondary-action run-search" data-id="${escapeHtml(search.id)}" type="button">Run</button>
+          </div>
+        `).join("");
+      }
+
+      agentRunsEl.innerHTML = searchRuns.length ? searchRuns.slice(0, 8).map((run) => {
+        const firstLink = run.sourceLinks?.[0];
+        return `
+          <div class="run-row">
+            <strong>${escapeHtml(run.criteria.location)} - ${escapeHtml(run.criteria.type === "all" ? "all targets" : run.criteria.type)}</strong><br>
+            ${escapeHtml(run.message)} Imported: ${run.importedCount}, existing: ${run.existingCount}.<br>
+            <span>${formatTime(run.createdAt)}</span>
+            ${firstLink ? `<br><a href="${escapeHtml(firstLink.url)}" target="_blank" rel="noreferrer">Open first source link</a>` : ""}
+          </div>
+        `;
+      }).join("") : `<div class="run-row">No agent runs yet.</div>`;
+
+      document.querySelectorAll(".run-search").forEach((button) => {
+        button.addEventListener("click", () => runSavedSearch(button.dataset.id, button));
       });
     }
     function renderMetrics(list) {
@@ -1191,6 +1357,17 @@
       document.getElementById("web-search-modal").setAttribute("aria-hidden", "true");
     }
 
+    function openAgentModal() {
+      document.getElementById("agent-modal").classList.add("open");
+      document.getElementById("agent-modal").setAttribute("aria-hidden", "false");
+      document.getElementById("agent-name").focus();
+    }
+
+    function closeAgentModal() {
+      document.getElementById("agent-modal").classList.remove("open");
+      document.getElementById("agent-modal").setAttribute("aria-hidden", "true");
+    }
+
     async function loadDealsFromApi() {
       if (apiBase === null) {
         backendStatus.textContent = "Static demo mode";
@@ -1213,6 +1390,28 @@
         backendStatus.textContent = "Backend unavailable";
         return false;
       }
+    }
+
+    async function loadAgentState() {
+      if (apiBase === null) {
+        renderAgentPanel();
+        return;
+      }
+      try {
+        const [searchResponse, runsResponse] = await Promise.all([
+          fetch("/api/searches"),
+          fetch("/api/search-runs?limit=20")
+        ]);
+        const searchPayload = await readJson(searchResponse);
+        const runsPayload = await readJson(runsResponse);
+        if (!searchResponse.ok) throw new Error(searchPayload.error || "Could not load searches.");
+        if (!runsResponse.ok) throw new Error(runsPayload.error || "Could not load search runs.");
+        searchProfiles = searchPayload.searches || [];
+        searchRuns = runsPayload.runs || [];
+      } catch (error) {
+        console.warn("Could not load search agent state.", error);
+      }
+      renderAgentPanel();
     }
 
     async function readJson(response) {
@@ -1283,6 +1482,40 @@
       return result;
     }
 
+    async function createSearchViaApi(formData) {
+      if (apiBase === null) throw new Error("Search agents require the backend-hosted app.");
+      const payload = {
+        name: formData.get("name"),
+        type: formData.get("type"),
+        location: formData.get("location"),
+        maxAsk: formData.get("maxAsk") ? Number(formData.get("maxAsk")) : null,
+        limit: Number(formData.get("limit")),
+        frequency: formData.get("frequency")
+      };
+      const response = await fetch("/api/searches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = await readJson(response);
+      if (!response.ok) throw new Error(result.error || "Could not save search.");
+      return result.search;
+    }
+
+    async function runSearchViaApi(id) {
+      const response = await fetch(`/api/searches/${encodeURIComponent(id)}/run`, { method: "POST" });
+      const result = await readJson(response);
+      if (!response.ok) throw new Error(result.error || "Could not run search.");
+      return result;
+    }
+
+    async function runAllSearchesViaApi() {
+      const response = await fetch("/api/agent/run-all", { method: "POST" });
+      const result = await readJson(response);
+      if (!response.ok) throw new Error(result.error || "Could not run search agent.");
+      return result;
+    }
+
     async function deleteDealViaApi(id) {
       if (apiBase === null) {
         deals = deals.filter((deal) => deal.id !== id);
@@ -1306,6 +1539,43 @@
       return result.deleted || 0;
     }
 
+    async function refreshDealsAndAgent() {
+      await loadDealsFromApi();
+      await loadAgentState();
+      renderCounts();
+      selectDeal(selectedId || deals[0]?.id);
+    }
+
+    async function applyAgentResult(result) {
+      const importedDeals = result.deals || [];
+      if (importedDeals.length) {
+        deals = [...importedDeals, ...deals.filter((deal) => !importedDeals.some((item) => item.id === deal.id))];
+        selectedId = importedDeals[0].id;
+      }
+      await loadAgentState();
+      renderCounts();
+      resetFilters();
+      selectDeal(selectedId || deals[0]?.id);
+      if (!importedDeals.length) {
+        const links = (result.sourceLinks || []).map((link) => `\n${link.title}`).join("");
+        alert(`${result.message}${links ? `\n\nSource links to inspect:${links}` : ""}`);
+      }
+    }
+
+    async function runSavedSearch(id, button) {
+      button.disabled = true;
+      button.textContent = "Running...";
+      try {
+        const result = await runSearchViaApi(id);
+        await applyAgentResult(result);
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = "Run";
+      }
+    }
+
     document.getElementById("search-form").addEventListener("submit", (event) => {
       event.preventDefault();
       renderSections();
@@ -1326,6 +1596,31 @@
       });
     });
     document.getElementById("open-add-deal").addEventListener("click", openModal);
+    document.getElementById("open-agent").addEventListener("click", openAgentModal);
+    document.getElementById("open-agent-secondary").addEventListener("click", openAgentModal);
+    document.getElementById("close-agent").addEventListener("click", closeAgentModal);
+    document.getElementById("cancel-agent").addEventListener("click", closeAgentModal);
+    document.getElementById("agent-modal").addEventListener("click", (event) => {
+      if (event.target.id === "agent-modal") closeAgentModal();
+    });
+    document.getElementById("run-all-searches").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      if (!searchProfiles.length) {
+        openAgentModal();
+        return;
+      }
+      button.disabled = true;
+      button.textContent = "Running...";
+      try {
+        await runAllSearchesViaApi();
+        await refreshDealsAndAgent();
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = "Run All";
+      }
+    });
     deleteSelectedButton.addEventListener("click", async () => {
       if (!selectedId) return;
       const deal = deals.find((item) => item.id === selectedId);
@@ -1402,6 +1697,24 @@
         submitButton.textContent = "Score Deal";
       }
     });
+    document.getElementById("agent-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submitButton = event.currentTarget.querySelector("button[type='submit']");
+      submitButton.disabled = true;
+      submitButton.textContent = "Saving...";
+      try {
+        const search = await createSearchViaApi(new FormData(event.currentTarget));
+        searchProfiles = [search, ...searchProfiles.filter((item) => item.id !== search.id)];
+        event.currentTarget.reset();
+        closeAgentModal();
+        renderAgentPanel();
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Save Search";
+      }
+    });
     document.getElementById("image-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       const submitButton = event.currentTarget.querySelector("button[type='submit']");
@@ -1459,6 +1772,7 @@
 
     async function init() {
       await loadDealsFromApi();
+      await loadAgentState();
       renderCounts();
       selectDeal(selectedId || deals[0]?.id);
     }

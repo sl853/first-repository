@@ -23,8 +23,10 @@ if (!existsSync(dataDir)) mkdirSync(dataDir);
 let db;
 let pool;
 let insertDeal;
+let insertSearchProfile;
+let insertSearchRun;
 
-const createTableSql = `
+const createDealsTableSql = `
   CREATE TABLE IF NOT EXISTS deals (
     id TEXT PRIMARY KEY,
     source TEXT NOT NULL,
@@ -48,22 +50,67 @@ const createTableSql = `
   );
 `;
 
+const createSearchProfilesTableSql = `
+  CREATE TABLE IF NOT EXISTS search_profiles (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    location TEXT NOT NULL,
+    max_ask INTEGER,
+    limit_count INTEGER NOT NULL,
+    frequency TEXT NOT NULL,
+    status TEXT NOT NULL,
+    last_run_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const createSearchRunsTableSql = `
+  CREATE TABLE IF NOT EXISTS search_runs (
+    id TEXT PRIMARY KEY,
+    search_id TEXT,
+    criteria_json TEXT NOT NULL,
+    status TEXT NOT NULL,
+    imported_count INTEGER NOT NULL,
+    existing_count INTEGER NOT NULL,
+    source_links_json TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
 if (usePostgres) {
   pool = new Pool({
     connectionString: databaseUrl,
     ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }
   });
-  await pool.query(createTableSql);
+  await pool.query(createDealsTableSql);
+  await pool.query(createSearchProfilesTableSql);
+  await pool.query(createSearchRunsTableSql);
 } else {
   const { DatabaseSync } = await import("node:sqlite");
   db = new DatabaseSync(dbPath);
-  db.exec(createTableSql);
+  db.exec(createDealsTableSql);
+  db.exec(createSearchProfilesTableSql);
+  db.exec(createSearchRunsTableSql);
   insertDeal = db.prepare(`
     INSERT OR REPLACE INTO deals (
       id, source, name, type, location, ask, income_label, income, metric_label,
       metric, score, confidence, verified, summary, tags, reasons, missing, memo
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  insertSearchProfile = db.prepare(`
+    INSERT OR REPLACE INTO search_profiles (
+      id, name, type, location, max_ask, limit_count, frequency, status, last_run_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  insertSearchRun = db.prepare(`
+    INSERT INTO search_runs (
+      id, search_id, criteria_json, status, imported_count, existing_count, source_links_json, message
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 }
 
@@ -309,6 +356,35 @@ function fromRow(row) {
   };
 }
 
+function searchProfileFromRow(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    location: row.location,
+    maxAsk: row.max_ask,
+    limit: row.limit_count,
+    frequency: row.frequency,
+    status: row.status,
+    lastRunAt: row.last_run_at,
+    createdAt: row.created_at
+  };
+}
+
+function searchRunFromRow(row) {
+  return {
+    id: row.id,
+    searchId: row.search_id,
+    criteria: JSON.parse(row.criteria_json),
+    status: row.status,
+    importedCount: row.imported_count,
+    existingCount: row.existing_count,
+    sourceLinks: JSON.parse(row.source_links_json),
+    message: row.message,
+    createdAt: row.created_at
+  };
+}
+
 async function insertDealRecord(deal) {
   const values = toRow(deal);
   if (usePostgres) {
@@ -345,6 +421,68 @@ async function insertDealRecord(deal) {
   insertDeal.run(...values);
 }
 
+async function insertSearchProfileRecord(search) {
+  const values = [
+    search.id,
+    search.name,
+    search.type,
+    search.location,
+    search.maxAsk,
+    search.limit,
+    search.frequency,
+    search.status,
+    search.lastRunAt || null
+  ];
+  if (usePostgres) {
+    await pool.query(
+      `
+        INSERT INTO search_profiles (
+          id, name, type, location, max_ask, limit_count, frequency, status, last_run_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          type = EXCLUDED.type,
+          location = EXCLUDED.location,
+          max_ask = EXCLUDED.max_ask,
+          limit_count = EXCLUDED.limit_count,
+          frequency = EXCLUDED.frequency,
+          status = EXCLUDED.status,
+          last_run_at = EXCLUDED.last_run_at
+      `,
+      values
+    );
+    return;
+  }
+  insertSearchProfile.run(...values);
+}
+
+async function insertSearchRunRecord(run) {
+  const values = [
+    run.id,
+    run.searchId || null,
+    JSON.stringify(run.criteria),
+    run.status,
+    run.importedCount,
+    run.existingCount,
+    JSON.stringify(run.sourceLinks),
+    run.message
+  ];
+  if (usePostgres) {
+    await pool.query(
+      `
+        INSERT INTO search_runs (
+          id, search_id, criteria_json, status, imported_count, existing_count, source_links_json, message
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `,
+      values
+    );
+    return;
+  }
+  insertSearchRun.run(...values);
+}
+
 async function allDealRows() {
   if (usePostgres) {
     const result = await pool.query("SELECT * FROM deals ORDER BY created_at DESC, score DESC");
@@ -353,12 +491,44 @@ async function allDealRows() {
   return db.prepare("SELECT * FROM deals ORDER BY created_at DESC, score DESC").all();
 }
 
+async function allSearchProfileRows() {
+  if (usePostgres) {
+    const result = await pool.query("SELECT * FROM search_profiles ORDER BY created_at DESC");
+    return result.rows;
+  }
+  return db.prepare("SELECT * FROM search_profiles ORDER BY created_at DESC").all();
+}
+
+async function activeSearchProfileRows() {
+  if (usePostgres) {
+    const result = await pool.query("SELECT * FROM search_profiles WHERE status = 'active' ORDER BY created_at DESC");
+    return result.rows;
+  }
+  return db.prepare("SELECT * FROM search_profiles WHERE status = 'active' ORDER BY created_at DESC").all();
+}
+
+async function recentSearchRunRows(limit = 20) {
+  if (usePostgres) {
+    const result = await pool.query("SELECT * FROM search_runs ORDER BY created_at DESC LIMIT $1", [limit]);
+    return result.rows;
+  }
+  return db.prepare("SELECT * FROM search_runs ORDER BY created_at DESC LIMIT ?").all(limit);
+}
+
 async function dealRowById(id) {
   if (usePostgres) {
     const result = await pool.query("SELECT * FROM deals WHERE id = $1", [id]);
     return result.rows[0];
   }
   return db.prepare("SELECT * FROM deals WHERE id = ?").get(id);
+}
+
+async function searchProfileRowById(id) {
+  if (usePostgres) {
+    const result = await pool.query("SELECT * FROM search_profiles WHERE id = $1", [id]);
+    return result.rows[0];
+  }
+  return db.prepare("SELECT * FROM search_profiles WHERE id = ?").get(id);
 }
 
 async function dealRowBySummaryUrl(url) {
@@ -395,6 +565,14 @@ async function deleteDealsBySource(source) {
     return result.rowCount;
   }
   return db.prepare("DELETE FROM deals WHERE source = ?").run(source).changes;
+}
+
+async function updateSearchLastRun(id) {
+  if (usePostgres) {
+    await pool.query("UPDATE search_profiles SET last_run_at = CURRENT_TIMESTAMP WHERE id = $1", [id]);
+    return;
+  }
+  db.prepare("UPDATE search_profiles SET last_run_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
 }
 
 async function seedSamples() {
@@ -535,6 +713,77 @@ function buildDeal(input, source = "manual") {
     ],
     missing,
     memo: `${name} is a ${type.toLowerCase()} opportunity in ${location} with an initial Deal Score of ${score} and ${confidence}% confidence. Next step: request the missing diligence items before treating the valuation as reliable.`
+  };
+}
+
+function normalizeSearchCriteria(input = {}) {
+  const type = String(input.type || "all").trim();
+  const location = String(input.location || "").trim();
+  const maxAsk = Number(input.maxAsk || input.max_ask) > 0 ? Number(input.maxAsk || input.max_ask) : null;
+  const limit = Math.min(12, Math.max(1, Number(input.limit || input.limit_count || 6)));
+  if (!location) {
+    const error = new Error("location is required.");
+    error.status = 400;
+    throw error;
+  }
+  return { type, location, maxAsk, limit };
+}
+
+function buildSearchProfile(input = {}) {
+  const criteria = normalizeSearchCriteria(input);
+  const name = String(input.name || `${criteria.location} ${criteria.type === "all" ? "priority targets" : criteria.type}`).trim();
+  const frequency = String(input.frequency || "manual").trim();
+  const status = String(input.status || "active").trim();
+  return {
+    id: input.id || `search-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+    name,
+    ...criteria,
+    frequency,
+    status,
+    lastRunAt: input.lastRunAt || null
+  };
+}
+
+async function runSearchAgent(criteria, searchId = null) {
+  const { results: found, sourceLinks } = await runPublicWebSearch(criteria);
+  const created = [];
+  const existingDeals = [];
+
+  for (const result of found) {
+    const deal = buildDeal(result.input, "web");
+    const existing = await dealRowBySummaryUrl(result.url) || await dealRowByFingerprint(deal);
+    if (existing) {
+      existingDeals.push(fromRow(existing));
+      continue;
+    }
+    await insertDealRecord(deal);
+    created.push(deal);
+  }
+
+  const message = created.length || existingDeals.length
+    ? "Imported unverified leads with visible price and income signals."
+    : "No importable listings found with visible price and income signals. Try a broader location or inspect the source links manually.";
+  const run = {
+    id: `run-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+    searchId,
+    criteria,
+    status: created.length || existingDeals.length ? "imported" : "needs_manual_review",
+    importedCount: created.length,
+    existingCount: existingDeals.length,
+    sourceLinks: sourceLinks.slice(0, 8),
+    message
+  };
+  await insertSearchRunRecord(run);
+  if (searchId) await updateSearchLastRun(searchId);
+
+  return {
+    criteria,
+    count: created.length,
+    existingCount: existingDeals.length,
+    deals: [...created, ...existingDeals],
+    sourceLinks: run.sourceLinks,
+    message,
+    run
   };
 }
 
@@ -847,6 +1096,84 @@ app.delete("/api/deals", async (req, res, next) => {
   }
 });
 
+app.get("/api/searches", async (_req, res, next) => {
+  try {
+    const searches = (await allSearchProfileRows()).map(searchProfileFromRow);
+    res.json({ searches });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/searches", async (req, res, next) => {
+  try {
+    const search = buildSearchProfile(req.body);
+    await insertSearchProfileRecord(search);
+    res.status(201).json({ search });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/search-runs", async (req, res, next) => {
+  try {
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit || 20)));
+    const runs = (await recentSearchRunRows(limit)).map(searchRunFromRow);
+    res.json({ runs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/searches/:id/run", async (req, res, next) => {
+  try {
+    const row = await searchProfileRowById(req.params.id);
+    if (!row) return res.status(404).json({ error: "Search profile not found." });
+    const search = searchProfileFromRow(row);
+    const result = await runSearchAgent(
+      {
+        type: search.type,
+        location: search.location,
+        maxAsk: search.maxAsk,
+        limit: search.limit
+      },
+      search.id
+    );
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/agent/run-all", async (req, res, next) => {
+  try {
+    const secret = process.env.AGENT_CRON_SECRET;
+    if (secret && req.get("x-agent-secret") !== secret && req.query.secret !== secret) {
+      const error = new Error("Invalid agent secret.");
+      error.status = 401;
+      throw error;
+    }
+
+    const searches = (await activeSearchProfileRows()).map(searchProfileFromRow);
+    const runs = [];
+    for (const search of searches.slice(0, 10)) {
+      const result = await runSearchAgent(
+        {
+          type: search.type,
+          location: search.location,
+          maxAsk: search.maxAsk,
+          limit: search.limit
+        },
+        search.id
+      );
+      runs.push(result.run);
+    }
+    res.status(201).json({ count: runs.length, runs });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/deals", async (req, res, next) => {
   try {
     const deal = buildDeal(req.body, req.body.source || "manual");
@@ -897,41 +1224,9 @@ app.post("/api/deals/extract-image", upload.single("image"), async (req, res, ne
 
 app.post("/api/deals/web-search", async (req, res, next) => {
   try {
-    const criteria = {
-      type: String(req.body.type || "all"),
-      location: String(req.body.location || "").trim(),
-      maxAsk: Number(req.body.maxAsk) > 0 ? Number(req.body.maxAsk) : null,
-      limit: Math.min(12, Math.max(1, Number(req.body.limit || 6)))
-    };
-    if (!criteria.location) {
-      const error = new Error("location is required.");
-      error.status = 400;
-      throw error;
-    }
-
-    const { results: found, sourceLinks } = await runPublicWebSearch(criteria);
-    const created = [];
-    const existingDeals = [];
-    for (const result of found) {
-      const deal = buildDeal(result.input, "web");
-      const existing = await dealRowBySummaryUrl(result.url) || await dealRowByFingerprint(deal);
-      if (existing) {
-        existingDeals.push(fromRow(existing));
-        continue;
-      }
-      await insertDealRecord(deal);
-      created.push(deal);
-    }
-    res.status(201).json({
-      criteria,
-      count: created.length,
-      existingCount: existingDeals.length,
-      deals: [...created, ...existingDeals],
-      sourceLinks: sourceLinks.slice(0, 8),
-      message: created.length || existingDeals.length
-        ? "Imported unverified leads with visible price and income signals."
-        : "No importable listings found with visible price and income signals. Try a broader location or inspect the source links manually."
-    });
+    const criteria = normalizeSearchCriteria(req.body);
+    const result = await runSearchAgent(criteria);
+    res.status(201).json(result);
   } catch (error) {
     next(error);
   }

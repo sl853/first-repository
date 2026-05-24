@@ -30,6 +30,7 @@ GitHub Pages is still useful as a static preview, but it cannot run `server.js`,
    - `SEED_SAMPLE_DEALS`: `false`
    - `OPENAI_API_KEY`: optional, needed for screenshot/photo extraction
    - `OPENAI_MODEL`: optional, defaults to `gpt-4.1-mini`
+   - `AGENT_CRON_SECRET`: optional, protects scheduled agent runs
 7. Deploy the service.
 8. Open `https://your-render-service.onrender.com/api/health`.
 
@@ -69,3 +70,25 @@ The stronger long-term backend should add:
 - AI extraction into structured fields
 - Verified/unverified badges
 - Provider feeds and enrichment data after the core workflow proves useful
+
+## Search Agent
+
+The app includes saved search profiles and a repeatable run endpoint:
+
+```text
+POST /api/agent/run-all
+```
+
+If `AGENT_CRON_SECRET` is set, scheduled callers must include it as either:
+
+```text
+x-agent-secret: your-secret
+```
+
+or:
+
+```text
+/api/agent/run-all?secret=your-secret
+```
+
+Use this later with a Render Cron Job or another scheduler to run saved searches daily or weekly.
