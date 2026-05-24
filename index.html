@@ -725,16 +725,16 @@
         <button class="filter-chip" data-filter="high-score">Score 85+</button>
       </div>
       <div class="action-row">
-        <p>Current scout sources are public web results for broker/listing pages. Imported leads stay unverified until documents or broker replies support the numbers.</p>
+        <p>Current scraper sources are public broker/listing pages. Imported leads stay unverified until documents or broker replies support the numbers.</p>
         <div class="action-buttons">
-          <button class="secondary-action" id="open-web-search" type="button">Scout Public Sources</button>
+          <button class="secondary-action" id="open-web-search" type="button">Scrape Public Sources</button>
           <button class="secondary-action" id="open-agent" type="button">Search Agent</button>
           <button class="secondary-action" id="open-image-import" type="button">Upload Screenshot</button>
           <button class="danger-action quiet-action" id="clear-web-leads" type="button">Clear Scout Leads</button>
           <button class="primary-action" id="open-add-deal" type="button">Add Deal</button>
         </div>
       </div>
-      <div class="source-strip" aria-label="Current public scout sources">
+      <div class="source-strip" aria-label="Current public scraper sources">
         <span class="source-chip">BusinessBroker.net</span>
         <span class="source-chip">BizBuySell</span>
         <span class="source-chip">BizQuest</span>
@@ -753,10 +753,10 @@
         <div class="agent-head">
           <div>
             <h2>Search Agent</h2>
-            <p>Saved searches scan BusinessBroker.net directly where possible, then use public search results for BizBuySell, BizQuest, LoopNet, Crexi, Sunbelt Network, and broader source discovery.</p>
+            <p>Saved searches scrape allowed public listing pages slowly, then use public search results for BizBuySell, BizQuest, LoopNet, Crexi, Sunbelt Network, and broader source discovery.</p>
           </div>
           <div class="action-buttons">
-            <button class="secondary-action" id="run-all-searches" type="button">Run Scout</button>
+            <button class="secondary-action" id="run-all-searches" type="button">Run Scraper</button>
             <button class="primary-action" id="open-agent-secondary" type="button">New Search</button>
           </div>
         </div>
@@ -919,8 +919,8 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="web-search-title">
       <div class="modal-header">
         <div>
-          <h2 id="web-search-title">Scout Public Sources</h2>
-          <p>Scan public broker/listing pages and import real candidate listings. Deal Radar marks weak or missing financials as low confidence instead of pretending they are underwritten.</p>
+          <h2 id="web-search-title">Scrape Public Sources</h2>
+          <p>Scrape allowed public broker/listing pages and import real candidate listings. Deal Radar marks weak or missing financials as low confidence instead of pretending they are underwritten.</p>
         </div>
         <button class="icon-button" id="close-web-search" type="button" aria-label="Close web search form">&times;</button>
       </div>
@@ -951,11 +951,11 @@
             <input id="web-limit" name="limit" type="number" min="1" max="12" value="6">
           </div>
         </div>
-        <div class="memo-box">Current direct scanner: BusinessBroker.net. Broader broker sites are handled as source discovery unless a result exposes enough listing data to import.</div>
+        <div class="memo-box">Current direct scraper: BusinessBroker.net listing and detail pages, with robots checks and rate limiting. Broader broker sites are handled as source discovery unless a result exposes enough listing data to import.</div>
         <div class="memo-box web-search-status" id="web-search-status"></div>
         <div class="form-actions">
           <button class="secondary-action" id="cancel-web-search" type="button">Cancel</button>
-          <button class="primary-action" type="submit">Scout & Import</button>
+          <button class="primary-action" type="submit">Scrape & Import</button>
         </div>
       </form>
     </div>
@@ -1744,7 +1744,7 @@
     document.getElementById("run-all-searches").addEventListener("click", async (event) => {
       const button = event.currentTarget;
       button.disabled = true;
-      button.textContent = "Scouting...";
+      button.textContent = "Scraping...";
       try {
         await runAllSearchesViaApi();
         await refreshDealsAndAgent();
@@ -1752,7 +1752,7 @@
         alert(error.message);
       } finally {
         button.disabled = false;
-        button.textContent = "Run Scout";
+        button.textContent = "Run Scraper";
       }
     });
     findContactButton.addEventListener("click", () => {
@@ -1898,7 +1898,7 @@
       event.preventDefault();
       const submitButton = event.currentTarget.querySelector("button[type='submit']");
       submitButton.disabled = true;
-      submitButton.textContent = "Scouting...";
+      submitButton.textContent = "Scraping...";
       webSearchStatus.style.display = "none";
       webSearchStatus.innerHTML = "";
       try {
@@ -1925,7 +1925,7 @@
         alert(error.message);
       } finally {
         submitButton.disabled = false;
-        submitButton.textContent = "Scout & Import";
+        submitButton.textContent = "Scrape & Import";
       }
     });
 

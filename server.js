@@ -18,6 +18,11 @@ const upload = multer({
   limits: { fileSize: 12 * 1024 * 1024 }
 });
 
+const scraperUserAgent = "DealRadarBot/0.1 (+https://deal-radar-s6ur.onrender.com)";
+const robotsCache = new Map();
+const lastFetchByOrigin = new Map();
+const minimumFetchDelayMs = Number(process.env.SCRAPER_DELAY_MS || 1500);
+
 if (!existsSync(dataDir)) mkdirSync(dataDir);
 
 let db;
@@ -1142,6 +1147,100 @@ function absoluteUrl(url, base) {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function robotsPatternToRegExp(pattern) {
+  const escaped = pattern
+    .replace(/[.?+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*")
+    .replace(/\$/g, "$");
+  return new RegExp(`^${escaped}`);
+}
+
+function parseRobots(text) {
+  const groups = [];
+  let currentAgents = [];
+  let currentRules = [];
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.split("#")[0].trim();
+    if (!line) continue;
+    const [rawKey, ...rawValue] = line.split(":");
+    const key = rawKey.toLowerCase().trim();
+    const value = rawValue.join(":").trim();
+    if (key === "user-agent") {
+      if (currentAgents.length && currentRules.length) {
+        groups.push({ agents: currentAgents, rules: currentRules });
+        currentRules = [];
+      }
+      currentAgents = [value.toLowerCase()];
+    } else if (["allow", "disallow"].includes(key) && currentAgents.length) {
+      currentRules.push({ type: key, pattern: value });
+    }
+  }
+
+  if (currentAgents.length) groups.push({ agents: currentAgents, rules: currentRules });
+  return groups;
+}
+
+function isAllowedByRobots(groups, targetUrl) {
+  const { pathname, search } = new URL(targetUrl);
+  const path = `${pathname}${search}`;
+  const matching = groups
+    .filter((group) => group.agents.includes("*") || group.agents.some((agent) => scraperUserAgent.toLowerCase().includes(agent)))
+    .flatMap((group) => group.rules)
+    .filter((rule) => rule.pattern === "" || robotsPatternToRegExp(rule.pattern).test(path))
+    .sort((a, b) => b.pattern.length - a.pattern.length);
+  if (!matching.length) return true;
+  return matching[0].type === "allow" || matching[0].pattern === "";
+}
+
+async function robotsGroupsFor(targetUrl) {
+  const origin = new URL(targetUrl).origin;
+  const cached = robotsCache.get(origin);
+  if (cached && Date.now() - cached.fetchedAt < 1000 * 60 * 60 * 12) return cached.groups;
+
+  try {
+    const response = await fetch(`${origin}/robots.txt`, {
+      headers: { "User-Agent": scraperUserAgent, "Accept": "text/plain" }
+    });
+    const text = response.ok ? await response.text() : "";
+    const groups = parseRobots(text);
+    robotsCache.set(origin, { fetchedAt: Date.now(), groups });
+    return groups;
+  } catch (_error) {
+    robotsCache.set(origin, { fetchedAt: Date.now(), groups: [] });
+    return [];
+  }
+}
+
+async function waitForOrigin(origin) {
+  const lastFetch = lastFetchByOrigin.get(origin) || 0;
+  const waitMs = Math.max(0, minimumFetchDelayMs - (Date.now() - lastFetch));
+  if (waitMs) await sleep(waitMs);
+  lastFetchByOrigin.set(origin, Date.now());
+}
+
+async function politeFetchText(url) {
+  const origin = new URL(url).origin;
+  const robotsGroups = await robotsGroupsFor(url);
+  if (!isAllowedByRobots(robotsGroups, url)) {
+    return { ok: false, blocked: true, status: 0, text: "", url };
+  }
+
+  await waitForOrigin(origin);
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": scraperUserAgent,
+      "Accept": "text/html,application/xhtml+xml,text/plain"
+    }
+  });
+  const text = response.ok ? await response.text() : "";
+  return { ok: response.ok, blocked: false, status: response.status, text, url: response.url || url };
+}
+
 function parseBingRss(xml) {
   return Array.from(xml.matchAll(/<item>([\s\S]*?)<\/item>/g)).map((match) => {
     const item = match[1];
@@ -1401,6 +1500,71 @@ function parseBusinessBrokerListings(html, criteria, sourceUrl) {
   }).filter(Boolean);
 }
 
+function visiblePageText(html) {
+  return stripHtml(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+  );
+}
+
+function textAfter(label, text, stopLabels = []) {
+  const start = text.toLowerCase().indexOf(label.toLowerCase());
+  if (start === -1) return "";
+  const valueStart = start + label.length;
+  const stops = stopLabels
+    .map((stop) => text.toLowerCase().indexOf(stop.toLowerCase(), valueStart))
+    .filter((index) => index > valueStart);
+  const end = stops.length ? Math.min(...stops) : Math.min(text.length, valueStart + 160);
+  return text.slice(valueStart, end).replace(/^[:\s]+/, "").trim();
+}
+
+function parseBusinessBrokerDetail(html) {
+  const text = visiblePageText(html);
+  const contact = textAfter("Contact:", text, ["Add To Request", "Quick Facts", "Asking Price"]);
+  const listingNumber = textAfter("BBN Listing #:", text, ["Broker Reference", "Email or Print", "Business Overview"]);
+  const brokerReference = textAfter("Broker Reference #:", text, ["Email or Print", "Business Overview"]);
+  const annualRevenue = textAmountAfter("Annual Revenue", text) || textAmountAfter("Gross Revenue", text);
+  const cashFlow = textAmountAfter("Cash Flow", text) || textAmountAfter("Cash Flow (SDE)", text);
+  const businessOverview = textAfter("Business Overview:", text, ["Detailed Information", "Facilities:", "Competition:"]);
+
+  return {
+    contact: contact.replace(/\s+/g, " ").slice(0, 80),
+    listingNumber: listingNumber.replace(/\D/g, "").slice(0, 20),
+    brokerReference: brokerReference.replace(/\s+/g, " ").slice(0, 40),
+    annualRevenue,
+    cashFlow,
+    businessOverview: businessOverview.replace(/\s+/g, " ").slice(0, 1200)
+  };
+}
+
+async function enrichBusinessBrokerResult(result) {
+  const fetched = await politeFetchText(result.url);
+  if (!fetched.ok) {
+    result.input.notes = `${result.input.notes} Detail scrape skipped: ${fetched.blocked ? "blocked by robots.txt" : `HTTP ${fetched.status}`}.`;
+    return result;
+  }
+
+  const detail = parseBusinessBrokerDetail(fetched.text);
+  if (!result.input.income && detail.cashFlow) {
+    result.input.incomeLabel = "SDE";
+    result.input.income = detail.cashFlow;
+  } else if (!result.input.income && detail.annualRevenue) {
+    result.input.incomeLabel = "Revenue";
+    result.input.income = detail.annualRevenue;
+  }
+
+  const detailNotes = [
+    detail.contact ? `Contact: ${detail.contact}.` : "",
+    detail.listingNumber ? `BBN listing #: ${detail.listingNumber}.` : "",
+    detail.brokerReference ? `Broker reference #: ${detail.brokerReference}.` : "",
+    detail.businessOverview ? `Detail overview: ${detail.businessOverview}` : ""
+  ].filter(Boolean).join(" ");
+
+  if (detailNotes) result.input.notes = `${result.input.notes} Detail scrape: ${detailNotes}`;
+  return result;
+}
+
 async function runBusinessBrokerSearch(criteria) {
   const stateSlug = stateSlugFromLocation(criteria.location);
   if (!stateSlug) return { results: [], sourceLinks: [] };
@@ -1418,18 +1582,17 @@ async function runBusinessBrokerSearch(criteria) {
       kind: "source_page"
     });
     try {
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 DealRadar/0.1",
-          "Accept": "text/html,application/xhtml+xml"
-        }
-      });
-      if (!response.ok) continue;
-      const html = await response.text();
-      for (const result of parseBusinessBrokerListings(html, criteria, url)) {
+      const fetched = await politeFetchText(url);
+      if (!fetched.ok) {
+        sourceLinks[sourceLinks.length - 1].snippet = fetched.blocked
+          ? "Skipped because robots.txt disallows this path."
+          : `Skipped because source returned HTTP ${fetched.status}.`;
+        continue;
+      }
+      for (const result of parseBusinessBrokerListings(fetched.text, criteria, url)) {
         if (seen.has(result.url)) continue;
         seen.add(result.url);
-        results.push(result);
+        results.push(await enrichBusinessBrokerResult(result));
         if (results.length >= criteria.limit) break;
       }
     } catch (_error) {
@@ -1570,6 +1733,29 @@ app.use(express.text({ type: ["text/csv", "text/plain"], limit: "2mb" }));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, database: usePostgres ? "postgres" : dbPath });
+});
+
+app.get("/api/scrape/sources", (_req, res) => {
+  res.json({
+    userAgent: scraperUserAgent,
+    delayMs: minimumFetchDelayMs,
+    sources: [
+      {
+        name: "BusinessBroker.net",
+        mode: "direct_scrape",
+        status: "active",
+        coverage: "Public keyword listing pages and public listing detail pages",
+        notes: "Robots-aware, rate-limited, no login/captcha bypass."
+      },
+      {
+        name: "BizBuySell / BizQuest / LoopNet / Crexi / Sunbelt",
+        mode: "source_discovery",
+        status: "discovery_only",
+        coverage: "Public search result links only unless a result exposes importable listing data",
+        notes: "Direct pages often block commodity scraping, so these need official feeds, broker uploads, or source-specific adapters."
+      }
+    ]
+  });
 });
 
 app.get("/api/deals", async (req, res, next) => {
