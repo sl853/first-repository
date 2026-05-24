@@ -119,7 +119,7 @@
     }
     .headline h1 {
       margin: 0;
-      font-size: clamp(32px, 5vw, 54px);
+      font-size: clamp(28px, 4vw, 46px);
       line-height: 1;
       letter-spacing: 0;
     }
@@ -203,6 +203,21 @@
       gap: 12px;
       margin-bottom: 24px;
     }
+    .source-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .source-chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(17, 21, 29, 0.75);
+      color: var(--muted);
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 750;
+    }
     .action-buttons {
       display: flex;
       flex-wrap: wrap;
@@ -237,6 +252,9 @@
       background: rgba(240, 111, 111, 0.09);
       color: #ffb4b4;
     }
+    .quiet-action {
+      opacity: 0.72;
+    }
     .primary-action:disabled,
     .secondary-action:disabled,
     .danger-action:disabled {
@@ -262,8 +280,8 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
-      padding: 18px;
-      margin-bottom: 30px;
+      padding: 16px;
+      margin-bottom: 22px;
     }
     .agent-head {
       display: flex;
@@ -387,6 +405,7 @@
     }
 
     .detail-panel {
+      scroll-margin-top: 18px;
       position: sticky;
       top: 0;
       height: 100vh;
@@ -409,6 +428,22 @@
       color: #9ed0ff;
       font-size: 13px;
       font-weight: 800;
+    }
+    .contact-tools {
+      display: grid;
+      gap: 10px;
+    }
+    .draft-box {
+      width: 100%;
+      min-height: 170px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #090d13;
+      color: var(--soft);
+      padding: 12px;
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
     }
     .score-block {
       border: 1px solid var(--line);
@@ -636,22 +671,22 @@
         <button class="nav-link" data-filter="Industrial">Industrial <span class="nav-count" id="count-industrial">0</span></button>
       </nav>
       <nav class="nav-group" aria-label="Analysis navigation">
-        <p class="nav-label">MVP Flow</p>
-        <a class="nav-link" href="#">Manual Entry</a>
-        <a class="nav-link" href="#">CSV Upload</a>
-        <a class="nav-link" href="#">Deal Memo</a>
+        <p class="nav-label">Workflow</p>
+        <a class="nav-link" href="#agent-panel">Search Agent</a>
+        <a class="nav-link" href="#sections">Pipeline</a>
+        <a class="nav-link" href="#detail-panel">Underwrite</a>
       </nav>
       <div class="sidebar-card">
-        <strong>Bring Any Listing</strong>
-        <p>Deal Radar cleans it, scores it, explains the underwriting signal, and tells you what data is missing.</p>
+        <strong>Data Truth Layer</strong>
+        <p>Scout sources, flag weak claims, request missing proof, and keep the market honest.</p>
       </div>
     </aside>
 
     <main id="top">
       <div class="topbar">
         <div class="headline">
-          <h1>Verified interpretation for messy listings.</h1>
-          <p>Search saved listings, open a deal, and see the underwriting logic, confidence level, and missing-data checklist that turns raw opportunities into a decision queue.</p>
+          <h1>Find, verify, and chase better acquisition data.</h1>
+          <p>Saved searches scout public sources, then Deal Radar scores what is visible and drafts the data request for whatever is missing.</p>
         </div>
         <div class="status-pill" id="backend-status">Checking backend</div>
       </div>
@@ -666,14 +701,22 @@
         <button class="filter-chip" data-filter="high-score">Score 85+</button>
       </div>
       <div class="action-row">
-        <p>Manual entry is the v1 ingestion path: add a messy listing, generate a score, and see what diligence is missing.</p>
+        <p>Current scout sources are public web results for broker/listing pages. Imported leads stay unverified until documents or broker replies support the numbers.</p>
         <div class="action-buttons">
           <button class="secondary-action" id="open-web-search" type="button">Scout Public Sources</button>
           <button class="secondary-action" id="open-agent" type="button">Search Agent</button>
           <button class="secondary-action" id="open-image-import" type="button">Upload Screenshot</button>
-          <button class="danger-action" id="clear-web-leads" type="button">Clear Web Leads</button>
+          <button class="danger-action quiet-action" id="clear-web-leads" type="button">Clear Web Leads</button>
           <button class="primary-action" id="open-add-deal" type="button">Add Deal</button>
         </div>
+      </div>
+      <div class="source-strip" aria-label="Current public scout sources">
+        <span class="source-chip">BizBuySell</span>
+        <span class="source-chip">BizQuest</span>
+        <span class="source-chip">LoopNet</span>
+        <span class="source-chip">Crexi</span>
+        <span class="source-chip">Sunbelt Network</span>
+        <span class="source-chip">Bing public index</span>
       </div>
       <section class="metrics" aria-label="Pipeline metrics">
         <div class="metric"><span>Visible Deals</span><strong id="metric-visible">0</strong></div>
@@ -681,11 +724,11 @@
         <div class="metric"><span>Avg Confidence</span><strong id="metric-confidence">0%</strong></div>
         <div class="metric"><span>Missing Items</span><strong id="metric-missing">0</strong></div>
       </section>
-      <section class="agent-panel" aria-label="Search agent">
+      <section class="agent-panel" id="agent-panel" aria-label="Search agent">
         <div class="agent-head">
           <div>
             <h2>Search Agent</h2>
-            <p>Saved searches run repeatable public-source scouts, record every run, and import only leads with visible price and income signals.</p>
+            <p>Saved searches repeatedly scout BizBuySell, BizQuest, LoopNet, Crexi, Sunbelt Network, and broader public results. Runs record source links even when no listing is clean enough to import.</p>
           </div>
           <div class="action-buttons">
             <button class="secondary-action" id="run-all-searches" type="button">Run All</button>
@@ -698,7 +741,7 @@
       <div class="empty-state" id="empty-state">No listings match that search. Try asset type, city, score, or one of the missing data flags.</div>
     </main>
 
-    <aside class="detail-panel" aria-label="Selected deal underwriting panel">
+    <aside class="detail-panel" id="detail-panel" aria-label="Selected deal underwriting panel">
       <div class="panel-header">
         <span class="panel-eyebrow" id="panel-type">Selected Deal</span>
         <h2 id="panel-title">Select a deal card</h2>
@@ -736,6 +779,16 @@
       <div class="panel-section">
         <h3>Missing-Data Flags</h3>
         <ul class="missing-list" id="panel-missing"></ul>
+      </div>
+      <div class="panel-section">
+        <h3>Contact & Data Request</h3>
+        <div class="contact-tools">
+          <div class="panel-actions">
+            <button class="secondary-action" id="find-contact" type="button" disabled>Find contact</button>
+            <button class="primary-action" id="draft-email" type="button" disabled>Draft email</button>
+          </div>
+          <textarea class="draft-box" id="email-draft" readonly placeholder="Select a listing, then draft a missing-data request."></textarea>
+        </div>
       </div>
       <div class="panel-section">
         <h3>Deal Memo Output</h3>
@@ -929,7 +982,7 @@
             </select>
           </div>
         </div>
-        <div class="memo-box">The agent records every run and keeps source links even when no listing is clean enough to import.</div>
+        <div class="memo-box">The agent scouts BizBuySell, BizQuest, LoopNet, Crexi, Sunbelt Network, and broader public results. It records every run and keeps source links even when no listing is clean enough to import.</div>
         <div class="form-actions">
           <button class="secondary-action" id="cancel-agent" type="button">Cancel</button>
           <button class="primary-action" type="submit">Save Search</button>
@@ -986,6 +1039,10 @@
     const webSearchStatus = document.getElementById("web-search-status");
     const agentListEl = document.getElementById("agent-list");
     const agentRunsEl = document.getElementById("agent-runs");
+    const detailPanelEl = document.getElementById("detail-panel");
+    const findContactButton = document.getElementById("find-contact");
+    const draftEmailButton = document.getElementById("draft-email");
+    const emailDraftEl = document.getElementById("email-draft");
 
     function scoreClass(value) {
       if (value >= 88) return "high";
@@ -1012,6 +1069,35 @@
     }
     function sourceUrlFor(deal) {
       return String(deal.summary || "").match(/https?:\/\/\S+/)?.[0]?.replace(/[).,;]+$/, "") || "";
+    }
+    function contactSearchUrlFor(deal) {
+      const sourceUrl = sourceUrlFor(deal);
+      const query = `${deal.name} ${deal.location} broker contact business for sale ${sourceUrl}`;
+      return `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
+    }
+    function dataRequestDraftFor(deal) {
+      const sourceUrl = sourceUrlFor(deal);
+      const missing = deal.missing.length ? deal.missing.map((item) => `- ${item}`).join("\n") : "- Current P&L or tax return\n- Lease or rent details\n- Equipment/capex detail";
+      return [
+        `Subject: ${deal.name} - request for diligence package`,
+        "",
+        "Hi,",
+        "",
+        `I am reviewing ${deal.name} in ${deal.location}. Before we rely on the published asking price, ${deal.incomeLabel}, or ${deal.metricLabel}, can you please send the items below or confirm they are unavailable?`,
+        "",
+        missing,
+        "",
+        "A few clarification questions:",
+        `- Is the reported ${deal.incomeLabel} seller-discretionary cash flow, EBITDA, NOI, or another metric?`,
+        "- What period does the reported income cover?",
+        "- Are add-backs documented and repeatable?",
+        "- Is real estate included or is this an operating-business sale only?",
+        "- Who is the best contact for source documents and follow-up questions?",
+        "",
+        sourceUrl ? `Source reviewed: ${sourceUrl}` : "Source reviewed: listing summary in Deal Radar",
+        "",
+        "Thanks,"
+      ].join("\n");
     }
     function formatTime(value) {
       if (!value) return "Never";
@@ -1124,10 +1210,14 @@
         </section>
       `).join("");
       document.querySelectorAll(".deal-card").forEach((card) => {
-        card.addEventListener("click", () => selectDeal(card.dataset.id));
+        card.addEventListener("click", () => selectDeal(card.dataset.id, true));
       });
     }
-    function selectDeal(id) {
+    function revealDealContext() {
+      detailPanelEl.scrollTo({ top: 0, behavior: "smooth" });
+      detailPanelEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    function selectDeal(id, reveal = false) {
       selectedId = id;
       const deal = deals.find((item) => item.id === id) || deals[0];
       if (!deal) {
@@ -1149,6 +1239,9 @@
         sourceLinkEl.style.display = "none";
         sourceLinkEl.href = "#";
         deleteSelectedButton.disabled = true;
+        findContactButton.disabled = true;
+        draftEmailButton.disabled = true;
+        emailDraftEl.value = "";
         renderSections();
         return;
       }
@@ -1159,6 +1252,9 @@
       sourceLinkEl.style.display = sourceUrl ? "inline-flex" : "none";
       sourceLinkEl.href = sourceUrl || "#";
       deleteSelectedButton.disabled = false;
+      findContactButton.disabled = false;
+      draftEmailButton.disabled = false;
+      emailDraftEl.value = dataRequestDraftFor(deal);
       document.getElementById("panel-score").textContent = deal.score;
       document.getElementById("panel-badge").textContent = deal.score >= 85 ? "Priority" : deal.score >= 75 ? "Diligence" : "Watchlist";
       document.getElementById("panel-badge").className = `badge ${scoreClass(deal.score)}`;
@@ -1177,6 +1273,7 @@
       document.getElementById("panel-missing").innerHTML = deal.missing.map((item) => `<li>${item}</li>`).join("");
       document.getElementById("panel-memo").textContent = deal.memo;
       renderSections();
+      if (reveal) revealDealContext();
     }
 
     function saveUserDeals() {
@@ -1619,6 +1716,30 @@
       } finally {
         button.disabled = false;
         button.textContent = "Run All";
+      }
+    });
+    findContactButton.addEventListener("click", () => {
+      const deal = deals.find((item) => item.id === selectedId);
+      if (!deal) return;
+      window.open(contactSearchUrlFor(deal), "_blank", "noopener,noreferrer");
+    });
+    draftEmailButton.addEventListener("click", async () => {
+      const deal = deals.find((item) => item.id === selectedId);
+      if (!deal) return;
+      emailDraftEl.value = dataRequestDraftFor(deal);
+      emailDraftEl.focus();
+      emailDraftEl.select();
+      try {
+        await navigator.clipboard.writeText(emailDraftEl.value);
+        draftEmailButton.textContent = "Copied";
+        setTimeout(() => {
+          draftEmailButton.textContent = "Draft email";
+        }, 1200);
+      } catch (_error) {
+        draftEmailButton.textContent = "Drafted";
+        setTimeout(() => {
+          draftEmailButton.textContent = "Draft email";
+        }, 1200);
       }
     });
     deleteSelectedButton.addEventListener("click", async () => {
