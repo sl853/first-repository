@@ -362,11 +362,39 @@ async function dealRowById(id) {
 }
 
 async function dealRowBySummaryUrl(url) {
+  if (!url) return null;
   if (usePostgres) {
     const result = await pool.query("SELECT * FROM deals WHERE summary LIKE $1 LIMIT 1", [`%${url}%`]);
     return result.rows[0];
   }
   return db.prepare("SELECT * FROM deals WHERE summary LIKE ?").get(`%${url}%`);
+}
+
+async function dealRowByFingerprint(deal) {
+  if (usePostgres) {
+    const result = await pool.query(
+      "SELECT * FROM deals WHERE lower(name) = lower($1) AND lower(location) = lower($2) AND ask = $3 LIMIT 1",
+      [deal.name, deal.location, deal.ask]
+    );
+    return result.rows[0];
+  }
+  return db.prepare("SELECT * FROM deals WHERE lower(name) = lower(?) AND lower(location) = lower(?) AND ask = ?").get(deal.name, deal.location, deal.ask);
+}
+
+async function deleteDealById(id) {
+  if (usePostgres) {
+    const result = await pool.query("DELETE FROM deals WHERE id = $1 RETURNING id", [id]);
+    return result.rowCount;
+  }
+  return db.prepare("DELETE FROM deals WHERE id = ?").run(id).changes;
+}
+
+async function deleteDealsBySource(source) {
+  if (usePostgres) {
+    const result = await pool.query("DELETE FROM deals WHERE source = $1", [source]);
+    return result.rowCount;
+  }
+  return db.prepare("DELETE FROM deals WHERE source = ?").run(source).changes;
 }
 
 async function seedSamples() {
@@ -571,7 +599,7 @@ function inferType(text, requestedType) {
 function inferListingFields(result, criteria) {
   const text = `${result.title} ${result.description}`;
   const amounts = moneyFromText(text);
-  const ask = amounts.find((value) => !criteria.maxAsk || value <= criteria.maxAsk) || amounts[0] || 1;
+  const ask = amounts.find((value) => !criteria.maxAsk || value <= criteria.maxAsk) || amounts[0] || 0;
   const income = amounts.find((value) => value > 1000 && value < ask * 0.8) || 0;
   const type = inferType(text, criteria.type);
   const name = result.title
@@ -593,19 +621,68 @@ function inferListingFields(result, criteria) {
   };
 }
 
+function meaningfulLocationTokens(location) {
+  return location.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2);
+}
+
+function isLowQualitySearchResult(text) {
+  return [
+    "wikipedia",
+    "reddit",
+    "trustpilot",
+    "review:",
+    "reviews of",
+    "flippa vs",
+    "about us",
+    "cookie policy"
+  ].some((term) => text.includes(term));
+}
+
+function brokerSearchLinks(criteria) {
+  const asset = criteria.type && criteria.type !== "all" ? criteria.type : "business";
+  const query = `${criteria.location} ${asset} for sale asking price cash flow`;
+  const encoded = encodeURIComponent(query);
+  return [
+    {
+      title: `Search BizBuySell for ${query}`,
+      url: `https://www.bing.com/search?q=${encodeURIComponent(`site:bizbuysell.com ${query}`)}`,
+      snippet: "Manual source search. Import only after price and income are visible."
+    },
+    {
+      title: `Search BizQuest for ${query}`,
+      url: `https://www.bing.com/search?q=${encodeURIComponent(`site:bizquest.com ${query}`)}`,
+      snippet: "Manual source search. Import only after price and income are visible."
+    },
+    {
+      title: `Search LoopNet/Crexi for ${query}`,
+      url: `https://www.bing.com/search?q=${encodeURIComponent(`(site:loopnet.com OR site:crexi.com) ${query}`)}`,
+      snippet: "Manual source search for commercial assets and broker pages."
+    },
+    {
+      title: `General web search for ${query}`,
+      url: `https://www.bing.com/search?q=${encoded}`,
+      snippet: "Broader search when broker pages do not expose importable listing details."
+    }
+  ];
+}
+
 async function runPublicWebSearch(criteria) {
   const typeTerms = criteria.type && criteria.type !== "all"
     ? [criteria.type]
-    : ["laundromat", "car wash", "auto repair"];
-  const sourceTerms = ["site:bizbuysell.com", "site:bizscout.com", "site:sunbeltnetwork.com"];
+    : ["laundromat", "car wash", "auto repair", "hotel", "liquor store", "industrial"];
+  const sourceTerms = ["BizBuySell", "BizQuest", "LoopNet", "Crexi", "Sunbelt Network"];
   const queries = typeTerms.flatMap((type) =>
-    sourceTerms.map((source) => `${source} ${criteria.location} ${type} for sale asking price cash flow`)
+    sourceTerms.map((source) => ({
+      type,
+      query: `${source} ${criteria.location} ${type} business for sale asking price cash flow`
+    }))
   );
   const seen = new Set();
   const results = [];
+  const sourceLinks = [];
 
-  for (const query of queries.slice(0, 9)) {
-    const url = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(query)}`;
+  for (const search of queries.slice(0, 18)) {
+    const url = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(search.query)}`;
     const response = await fetch(url, { headers: { "User-Agent": "DealRadar/0.1" } });
     if (!response.ok) continue;
     const xml = await response.text();
@@ -613,88 +690,21 @@ async function runPublicWebSearch(criteria) {
       if (!item.link || seen.has(item.link)) continue;
       seen.add(item.link);
       const haystack = `${item.title} ${item.description}`.toLowerCase();
-      if (!haystack.includes("sale") && !haystack.includes("cash flow") && !haystack.includes("asking")) continue;
+      if (isLowQualitySearchResult(haystack)) continue;
+      const locationSignal = meaningfulLocationTokens(criteria.location).some((token) => haystack.includes(token));
+      const typeSignal = search.type.toLowerCase().split(/\s+/).some((token) => haystack.includes(token));
+      if (!locationSignal && !typeSignal) continue;
+      if (!haystack.includes("sale") && !haystack.includes("business") && !haystack.includes("listing")) continue;
+      sourceLinks.push({ title: item.title, url: item.link, snippet: item.description });
       const input = inferListingFields(item, criteria);
+      if (!input.ask || !input.income) continue;
       if (criteria.maxAsk && input.ask > criteria.maxAsk) continue;
       results.push({ input, url: item.link });
-      if (results.length >= criteria.limit) return results;
+      if (results.length >= criteria.limit) return { results, sourceLinks };
     }
   }
 
-  return results;
-}
-
-function fallbackWebLeads(criteria) {
-  const fallback = [
-    {
-      name: "Cougar Ridge Car Wash",
-      type: "Car Wash",
-      location: "Waco, TX",
-      ask: 1000000,
-      incomeLabel: "SDE",
-      income: 84495,
-      notes: "Fallback public broker scout lead from BizBuySell Texas car wash category page. Snippet shows asking price $1,000,000 and cash flow $84,495. URL: https://www.bizbuysell.com/texas/car-washes-for-sale/",
-      docs: []
-    },
-    {
-      name: "Turnkey Single Bay Automatic Car Wash",
-      type: "Car Wash",
-      location: "San Antonio, TX",
-      ask: 1500000,
-      incomeLabel: "SDE",
-      income: 197000,
-      notes: "Fallback public broker scout lead from BizBuySell Texas car wash category page. Snippet shows asking price $1,500,000 and cash flow $197,000 with real estate included. URL: https://broker.bizbuysell.com/texas/car-washes-for-sale/",
-      docs: []
-    },
-    {
-      name: "Auto and Body Shop",
-      type: "Auto Repair",
-      location: "Houston, TX",
-      ask: 115000,
-      incomeLabel: "SDE",
-      income: 77000,
-      notes: "Fallback public broker scout lead from BizBuySell Texas auto repair category page. Snippet shows asking price $115,000 and cash flow $77,000. URL: https://www.bizbuysell.com/texas/auto-repair-and-service-shops-established-businesses-for-sale/",
-      docs: []
-    },
-    {
-      name: "Auto Repair Shop in Collin County",
-      type: "Auto Repair",
-      location: "Collin County, TX",
-      ask: 200000,
-      incomeLabel: "SDE",
-      income: 76600,
-      notes: "Fallback public broker scout lead from BizBuySell Texas auto repair page. Snippet shows asking price $200,000 and cash flow $76,600. URL: https://www.bizbuysell.com/texas/auto-repair-and-service-shop-established-businesses-for-sale/2/",
-      docs: []
-    },
-    {
-      name: "Northeast Texas Auto Repair",
-      type: "Auto Repair",
-      location: "Northeast Texas",
-      ask: 720000,
-      incomeLabel: "SDE",
-      income: 240000,
-      notes: "Fallback public broker scout lead from BizBuySell Texas auto repair page. Snippet shows asking price $720,000 and cash flow $240,000. URL: https://www.bizbuysell.com/texas/auto-repair-and-service-shop-established-businesses-for-sale/2/",
-      docs: []
-    },
-    {
-      name: "Garland Smart Laundromat",
-      type: "Laundromat",
-      location: "Garland, TX",
-      ask: 550000,
-      incomeLabel: "SDE",
-      income: 140000,
-      notes: "Fallback public broker scout lead from BizBuySell Texas laundromat category page. Snippet shows asking price $550,000 and cash flow $140,000. URL: https://www.bizbuysell.com/texas/laundromats-and-coin-laundry-established-businesses-for-sale/",
-      docs: []
-    }
-  ];
-
-  const state = criteria.location.toLowerCase().includes("tx") || criteria.location.toLowerCase().includes("texas");
-  return fallback
-    .filter((lead) => criteria.type === "all" || lead.type === criteria.type)
-    .filter((lead) => state || lead.location.toLowerCase().includes(criteria.location.toLowerCase()))
-    .filter((lead) => !criteria.maxAsk || lead.ask <= criteria.maxAsk)
-    .slice(0, criteria.limit)
-    .map((input) => ({ input, url: input.notes.match(/URL: (.*)$/)?.[1] || "" }));
+  return { results, sourceLinks: sourceLinks.length ? sourceLinks : brokerSearchLinks(criteria) };
 }
 
 function extractJson(text) {
@@ -812,6 +822,31 @@ app.get("/api/deals/:id", async (req, res, next) => {
   }
 });
 
+app.delete("/api/deals/:id", async (req, res, next) => {
+  try {
+    const deleted = await deleteDealById(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Deal not found." });
+    res.json({ deleted });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/deals", async (req, res, next) => {
+  try {
+    const source = String(req.query.source || "").trim();
+    if (source !== "web") {
+      const error = new Error("Only source=web can be bulk deleted.");
+      error.status = 400;
+      throw error;
+    }
+    const deleted = await deleteDealsBySource(source);
+    res.json({ deleted });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/deals", async (req, res, next) => {
   try {
     const deal = buildDeal(req.body, req.body.source || "manual");
@@ -864,7 +899,7 @@ app.post("/api/deals/web-search", async (req, res, next) => {
   try {
     const criteria = {
       type: String(req.body.type || "all"),
-      location: String(req.body.location || "Texas").trim(),
+      location: String(req.body.location || "").trim(),
       maxAsk: Number(req.body.maxAsk) > 0 ? Number(req.body.maxAsk) : null,
       limit: Math.min(12, Math.max(1, Number(req.body.limit || 6)))
     };
@@ -874,13 +909,12 @@ app.post("/api/deals/web-search", async (req, res, next) => {
       throw error;
     }
 
-    let found = await runPublicWebSearch(criteria);
-    if (!found.length) found = fallbackWebLeads(criteria);
+    const { results: found, sourceLinks } = await runPublicWebSearch(criteria);
     const created = [];
     const existingDeals = [];
     for (const result of found) {
       const deal = buildDeal(result.input, "web");
-      const existing = await dealRowBySummaryUrl(result.url);
+      const existing = await dealRowBySummaryUrl(result.url) || await dealRowByFingerprint(deal);
       if (existing) {
         existingDeals.push(fromRow(existing));
         continue;
@@ -892,7 +926,11 @@ app.post("/api/deals/web-search", async (req, res, next) => {
       criteria,
       count: created.length,
       existingCount: existingDeals.length,
-      deals: [...created, ...existingDeals]
+      deals: [...created, ...existingDeals],
+      sourceLinks: sourceLinks.slice(0, 8),
+      message: created.length || existingDeals.length
+        ? "Imported unverified leads with visible price and income signals."
+        : "No importable listings found with visible price and income signals. Try a broader location or inspect the source links manually."
     });
   } catch (error) {
     next(error);
