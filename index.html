@@ -3,1940 +3,261 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deal Radar | AI Acquisition Intelligence</title>
+  <title>Understudy</title>
+  <meta name="description" content="Understudy is a private umbrella company for the businesses, projects, and systems Spencer is building.">
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #090909;
-      --rail: #0d0d0f;
-      --panel: #121214;
-      --panel-soft: #18181b;
-      --field: #0f0f11;
-      --line: #29292d;
-      --line-soft: #202024;
-      --text: #f2f2ef;
-      --muted: #8f9097;
-      --soft: #c9c9c4;
-      --green: #89d185;
-      --amber: #d9ad5f;
-      --red: #e07a7a;
-      --blue: #8fb4ff;
+      --bg: #f3eee5;
+      --ink: #171412;
+      --muted: #746d66;
+      --line: rgba(23, 20, 18, 0.12);
+      --panel: rgba(255, 255, 255, 0.45);
+      --accent: #b78f63;
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: "Segoe UI", system-ui, sans-serif;
     }
 
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--bg);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      letter-spacing: 0;
+      background:
+        radial-gradient(circle at top right, rgba(183, 143, 99, 0.18), transparent 26%),
+        linear-gradient(180deg, #f7f2ea 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.6;
     }
-    button, input { font: inherit; }
-    button { cursor: pointer; }
-    a { color: inherit; text-decoration: none; }
-
-    .app-shell {
-      display: grid;
-      grid-template-columns: 220px minmax(0, 1fr) 410px;
-      min-height: 100vh;
-    }
-    .sidebar {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      border-right: 1px solid var(--line);
-      background: var(--rail);
-      padding: 20px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 22px;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 18px;
-      font-weight: 820;
-    }
-    .brand-mark {
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
-      display: grid;
-      place-items: center;
-      background: var(--text);
-      color: var(--bg);
-      font-weight: 950;
-    }
-    .nav-group { display: grid; gap: 5px; }
-    .nav-label {
-      margin: 0 0 6px;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .nav-link {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      gap: 10px;
-      border: 0;
-      border-radius: 8px;
-      background: transparent;
-      color: var(--soft);
-      padding: 9px 10px;
-      text-align: left;
-      transition: background 160ms ease, color 160ms ease;
-    }
-    .nav-link:hover,
-    .nav-link.active {
-      background: var(--panel-soft);
-      color: var(--text);
-    }
-    .nav-count { color: var(--muted); font-size: 12px; }
-    .sidebar-card {
-      margin-top: auto;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 13px;
-      background: var(--panel);
-    }
-    .sidebar-card strong { display: block; margin-bottom: 8px; font-size: 14px; }
-    .sidebar-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 
     main {
-      min-width: 0;
-      padding: 22px;
+      width: min(1100px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 48px 0 72px;
     }
-    .topbar {
+
+    .hero {
+      min-height: 72vh;
       display: flex;
-      align-items: flex-start;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 24px 0 72px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 24px;
+      font-family: var(--serif);
+      font-size: clamp(72px, 14vw, 180px);
+      font-weight: 400;
+      line-height: 0.88;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-copy {
+      max-width: 700px;
+      font-family: var(--serif);
+      font-size: clamp(24px, 3vw, 34px);
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    section {
+      padding: 80px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-label {
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0 0 22px;
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 400;
+      line-height: 1.18;
+      max-width: 760px;
+    }
+
+    p {
+      margin: 0 0 18px;
+      max-width: 700px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 36px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 26px;
+      backdrop-filter: blur(4px);
+    }
+
+    .card-number {
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 400;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 15px;
+      max-width: 340px;
+    }
+
+    .status-note {
+      margin-top: 30px;
+      padding: 16px 18px;
+      border-left: 2px solid var(--accent);
+      background: rgba(255, 255, 255, 0.34);
+      color: var(--muted);
+      max-width: 760px;
+    }
+
+    footer {
+      padding: 38px 0 8px;
+      display: flex;
       justify-content: space-between;
       gap: 20px;
-      margin-bottom: 16px;
-    }
-    .headline h1 {
-      margin: 0;
-      font-size: clamp(24px, 3vw, 34px);
-      line-height: 1.08;
-      letter-spacing: 0;
-    }
-    .headline p {
-      max-width: 700px;
-      margin: 9px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.55;
-    }
-    .status-pill,
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      white-space: nowrap;
-      font-weight: 760;
-    }
-    .status-pill {
-      border: 1px solid rgba(69, 212, 131, 0.32);
-      background: rgba(137, 209, 133, 0.09);
-      color: #aaf0c5;
-      padding: 7px 10px;
-      font-size: 12px;
+      flex-wrap: wrap;
     }
 
-    .search-panel {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 8px;
-      padding: 8px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      margin-bottom: 10px;
-    }
-    .search-panel input {
-      width: 100%;
-      border: 1px solid transparent;
-      border-radius: 8px;
-      background: var(--field);
-      color: var(--text);
-      padding: 11px 12px;
-      outline: none;
-    }
-    .search-panel input:focus { border-color: rgba(95, 168, 255, 0.8); }
-    .search-panel button {
-      border: 0;
-      border-radius: 8px;
-      background: var(--text);
-      color: var(--bg);
-      padding: 0 16px;
-      font-weight: 820;
-    }
-    .filter-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 14px;
-    }
-    .filter-chip {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: var(--panel);
-      color: var(--soft);
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 720;
-    }
-    .filter-chip.active {
-      border-color: rgba(95, 168, 255, 0.7);
-      background: rgba(95, 168, 255, 0.12);
-      color: var(--text);
-    }
-    .action-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 0;
-      margin-bottom: 10px;
-      border-top: 1px solid var(--line-soft);
-      border-bottom: 1px solid var(--line-soft);
-    }
-    .source-strip {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 14px;
-    }
-    .source-chip {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: transparent;
-      color: var(--muted);
-      padding: 4px 8px;
-      font-size: 11px;
-      font-weight: 720;
-    }
-    .action-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-    .action-row p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    .primary-action,
-    .secondary-action,
-    .danger-action {
-      border-radius: 8px;
-      padding: 9px 11px;
-      font-size: 12px;
-      font-weight: 780;
-    }
-    .primary-action {
-      border: 0;
-      background: var(--text);
-      color: #090b10;
-    }
-    .secondary-action {
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--soft);
-    }
-    .danger-action {
-      border: 1px solid rgba(240, 111, 111, 0.36);
-      background: rgba(240, 111, 111, 0.09);
-      color: #ffb4b4;
-    }
-    .quiet-action {
-      opacity: 0.72;
-    }
-    .primary-action:disabled,
-    .secondary-action:disabled,
-    .danger-action:disabled {
-      cursor: not-allowed;
-      opacity: 0.46;
-    }
-    .metrics {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .metric {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 11px 12px;
-      background: var(--panel);
-    }
-    .metric span { color: var(--muted); font-size: 11px; }
-    .metric strong { display: block; margin-top: 5px; font-size: 20px; }
-
-    .agent-panel {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      padding: 12px;
-      margin-bottom: 18px;
-    }
-    .agent-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-    .agent-head h2 { margin: 0; font-size: 16px; }
-    .agent-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
-    .agent-list {
-      display: grid;
-      gap: 6px;
-    }
-    .agent-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
-      align-items: center;
-      border-top: 1px solid var(--line);
-      padding-top: 9px;
-    }
-    .agent-row strong { display: block; margin-bottom: 3px; font-size: 13px; }
-    .agent-row span { color: var(--muted); font-size: 12px; line-height: 1.45; }
-    .run-list {
-      display: grid;
-      gap: 9px;
-      max-height: 220px;
-      overflow: auto;
-    }
-    .run-row {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--field);
-      padding: 11px;
-      color: var(--soft);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    .run-row a { color: #9ed0ff; font-weight: 800; }
-
-    .section-header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 16px;
-      margin: 22px 0 9px;
-    }
-    .section-header h2 { margin: 0; font-size: 17px; }
-    .section-header p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
-    .deal-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-    .deal-card {
-      width: 100%;
-      min-height: 0;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px;
-      background: var(--panel);
-      color: var(--text);
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(220px, 0.55fr);
-      gap: 8px 14px;
-      text-align: left;
-      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
-    }
-    .deal-card:hover,
-    .deal-card.active {
-      border-color: rgba(143, 180, 255, 0.65);
-      background: var(--panel-soft);
-      transform: translateY(-1px);
-    }
-    .deal-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      min-width: 0;
-    }
-    .deal-card h3 { margin: 0 0 4px; font-size: 15px; line-height: 1.2; }
-    .location { color: var(--muted); font-size: 13px; }
-    .badge { padding: 5px 8px; font-size: 11px; }
-    .high { background: rgba(69, 212, 131, 0.14); color: var(--green); }
-    .mid { background: rgba(242, 184, 75, 0.15); color: var(--amber); }
-    .watch { background: rgba(95, 168, 255, 0.14); color: var(--blue); }
-    .low { background: rgba(240, 111, 111, 0.14); color: var(--red); }
-    .deal-stats {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      grid-column: 2;
-      grid-row: 1 / span 2;
-      align-self: start;
-    }
-    .deal-stat {
-      border-top: 1px solid var(--line);
-      padding-top: 8px;
-    }
-    .deal-stat span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
-    .deal-stat strong { font-size: 15px; }
-    .insight {
-      color: var(--soft);
-      line-height: 1.45;
-      font-size: 13px;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      grid-column: 1;
-    }
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      grid-column: 1 / -1;
-      max-height: 24px;
-      overflow: hidden;
-    }
-    .tag {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--muted);
-      padding: 4px 7px;
-      font-size: 11px;
-    }
-    .empty-state {
-      display: none;
-      border: 1px dashed var(--line);
-      border-radius: 8px;
-      padding: 26px;
-      color: var(--muted);
-      background: rgba(17, 21, 29, 0.55);
+    .footer-mark {
+      font-family: var(--serif);
+      font-size: 16px;
     }
 
-    .detail-panel {
-      scroll-margin-top: 18px;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow: auto;
-      border-left: 1px solid var(--line);
-      background: var(--rail);
-      padding: 20px;
-    }
-    .panel-header { display: grid; gap: 9px; margin-bottom: 14px; }
-    .panel-eyebrow { color: var(--muted); font-size: 11px; font-weight: 820; letter-spacing: 0.08em; text-transform: uppercase; }
-    .detail-panel h2 { margin: 0; font-size: 22px; line-height: 1.12; }
-    .detail-panel p { color: var(--muted); line-height: 1.5; font-size: 13px; }
-    .panel-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .source-link {
-      display: none;
-      color: #9ed0ff;
-      font-size: 13px;
-      font-weight: 800;
-    }
-    .contact-tools {
-      display: grid;
-      gap: 10px;
-    }
-    .draft-box {
-      width: 100%;
-      min-height: 150px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--field);
-      color: var(--soft);
-      padding: 12px;
-      line-height: 1.5;
-      resize: vertical;
-      outline: none;
-    }
-    .score-block {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px;
-      background: var(--panel);
-      margin-bottom: 8px;
-    }
-    .score-main {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 10px;
-    }
-    .score-number { font-size: 34px; font-weight: 880; line-height: 1; }
-    .score-label { color: var(--muted); font-size: 12px; }
-    .bar {
-      height: 9px;
-      border-radius: 999px;
-      background: var(--field);
-      overflow: hidden;
-      border: 1px solid var(--line);
-    }
-    .bar-fill {
-      height: 100%;
-      width: var(--value, 0%);
-      border-radius: inherit;
-      background: linear-gradient(90deg, var(--green), var(--blue));
-    }
-    .panel-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin: 10px 0;
-    }
-    .panel-stat {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 10px;
-      background: var(--panel-soft);
-    }
-    .panel-stat span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
-    .panel-stat strong { font-size: 16px; }
-    .panel-section { margin-top: 16px; }
-    .panel-section h3 { margin: 0 0 8px; font-size: 13px; color: var(--soft); }
-    .reason-list,
-    .missing-list {
-      display: grid;
-      gap: 7px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    .reason-list li,
-    .missing-list li {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 9px;
-      background: var(--panel);
-      color: var(--soft);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    .missing-list li { color: #ffd7a3; border-color: rgba(242, 184, 75, 0.25); }
-    .memo-box {
-      border: 1px solid rgba(95, 168, 255, 0.28);
-      border-radius: 8px;
-      padding: 11px;
-      background: rgba(143, 180, 255, 0.06);
-      color: var(--soft);
-      line-height: 1.55;
+    .footer-meta {
+      color: var(--muted);
       font-size: 14px;
     }
-    .web-search-status {
-      display: none;
-      margin-top: 12px;
-    }
-    .source-list {
-      margin: 10px 0 0;
-      padding: 0;
-      list-style: none;
-      display: grid;
-      gap: 8px;
-    }
-    .source-list a { color: #9ed0ff; font-weight: 800; }
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      display: none;
-      place-items: center;
-      padding: 22px;
-      background: rgba(3, 5, 9, 0.72);
-    }
-    .modal-backdrop.open { display: grid; }
-    .modal {
-      width: min(760px, 100%);
-      max-height: calc(100vh - 44px);
-      overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      padding: 18px;
-    }
-    .modal-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 18px;
-    }
-    .modal-header h2 { margin: 0 0 6px; font-size: 24px; }
-    .modal-header p { margin: 0; color: var(--muted); line-height: 1.5; }
-    .icon-button {
-      width: 36px;
-      height: 36px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel-soft);
-      color: var(--text);
-      font-size: 20px;
-      line-height: 1;
-    }
-    .deal-form {
-      display: grid;
-      gap: 16px;
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .field {
-      display: grid;
-      gap: 7px;
-    }
-    .field.full { grid-column: 1 / -1; }
-    .field label {
-      color: var(--soft);
-      font-size: 13px;
-      font-weight: 800;
-    }
-    .field input,
-    .field select,
-    .field textarea {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--field);
-      color: var(--text);
-      padding: 12px;
-      outline: none;
-    }
-    .field textarea {
-      min-height: 92px;
-      resize: vertical;
-    }
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus {
-      border-color: rgba(95, 168, 255, 0.8);
-    }
-    .doc-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-    .doc-check {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      padding: 10px;
-      color: var(--soft);
-      font-size: 13px;
-    }
-    .doc-check input { width: 16px; height: 16px; }
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      padding-top: 4px;
-    }
 
-    @media (max-width: 1260px) {
-      .app-shell { grid-template-columns: 220px minmax(0, 1fr); }
-      .detail-panel { position: static; height: auto; grid-column: 2; border-top: 1px solid var(--line); border-left: 0; }
-    }
-    @media (max-width: 900px) {
-      .app-shell { grid-template-columns: 1fr; }
-      .sidebar, .detail-panel { position: static; height: auto; grid-column: auto; }
-      .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
-      .nav-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      main { padding: 22px; }
-      .topbar, .section-header { flex-direction: column; align-items: flex-start; }
-      .metrics, .deal-grid { grid-template-columns: 1fr; }
-      .agent-head, .agent-row { grid-template-columns: 1fr; }
-      .action-row { align-items: flex-start; flex-direction: column; }
-      .action-buttons { justify-content: flex-start; }
-      .search-panel { grid-template-columns: 1fr; }
-      .search-panel button { min-height: 48px; }
-      .form-grid, .doc-grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 680px) {
-      .deal-card { grid-template-columns: 1fr; }
-      .deal-stats { grid-column: auto; grid-row: auto; }
+    @media (max-width: 760px) {
+      main {
+        width: min(100% - 32px, 1100px);
+        padding-top: 28px;
+      }
+
+      .hero {
+        min-height: auto;
+        padding-bottom: 52px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      footer {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" aria-label="Deal Radar navigation">
-      <a class="brand" href="#top" aria-label="Deal Radar home">
-        <span class="brand-mark">DR</span>
-        <span>Deal Radar</span>
-      </a>
-      <nav class="nav-group" aria-label="Asset filters">
-        <p class="nav-label">Workspace</p>
-        <button class="nav-link active" data-filter="all">Dashboard <span class="nav-count" id="count-all">0</span></button>
-        <button class="nav-link" data-filter="Laundromat">Laundromats <span class="nav-count" id="count-laundromat">0</span></button>
-        <button class="nav-link" data-filter="Hotel">Hotels <span class="nav-count" id="count-hotel">0</span></button>
-        <button class="nav-link" data-filter="Car Wash">Car Washes <span class="nav-count" id="count-car-wash">0</span></button>
-        <button class="nav-link" data-filter="Auto Repair">Auto Repair <span class="nav-count" id="count-auto-repair">0</span></button>
-        <button class="nav-link" data-filter="Liquor Store">Liquor Stores <span class="nav-count" id="count-liquor-store">0</span></button>
-        <button class="nav-link" data-filter="Industrial">Industrial <span class="nav-count" id="count-industrial">0</span></button>
-      </nav>
-      <nav class="nav-group" aria-label="Analysis navigation">
-        <p class="nav-label">Workflow</p>
-        <a class="nav-link" href="#agent-panel">Search Agent</a>
-        <a class="nav-link" href="#sections">Pipeline</a>
-        <a class="nav-link" href="#detail-panel">Underwrite</a>
-      </nav>
-      <div class="sidebar-card">
-        <strong>Data Truth Layer</strong>
-        <p>Scout sources, flag weak claims, request missing proof, and keep the market honest.</p>
+  <main>
+    <section class="hero">
+      <div class="eyebrow">Private company · Los Angeles, CA</div>
+      <h1>Understudy</h1>
+      <div class="hero-copy">A home for the businesses, projects, and systems Spencer is building.</div>
+    </section>
+
+    <section>
+      <div class="section-label">01 - Company</div>
+      <h2>One front door. Multiple lines of work. Long-term ownership.</h2>
+      <p>Understudy is the umbrella company for a small group of businesses and working projects. It is meant to hold the public story together while leaving room for different kinds of work to grow at their own pace.</p>
+      <p>The public site stays simple. The fuller structure stays private until each part is ready to stand on its own.</p>
+    </section>
+
+    <section>
+      <div class="section-label">02 - Structure</div>
+      <h2>Understudy is the parent layer. The businesses underneath can stay distinct.</h2>
+      <div class="grid">
+        <article class="card">
+          <div class="card-number">01</div>
+          <h3>Parent brand</h3>
+          <p>Understudy is the shared front door, operating identity, and long-term umbrella.</p>
+        </article>
+        <article class="card">
+          <div class="card-number">02</div>
+          <h3>Operating businesses</h3>
+          <p>Revenue-producing businesses can sit under Understudy without losing their own customers, workflows, or voice.</p>
+        </article>
+        <article class="card">
+          <div class="card-number">03</div>
+          <h3>New ventures</h3>
+          <p>Early concepts can stay lightweight until they prove demand, then become fuller businesses later.</p>
+        </article>
+        <article class="card">
+          <div class="card-number">04</div>
+          <h3>Research and systems</h3>
+          <p>The brain, scouting work, and internal tools support the whole portfolio rather than one project at a time.</p>
+        </article>
       </div>
-    </aside>
+    </section>
 
-    <main id="top">
-      <div class="topbar">
-        <div class="headline">
-          <h1>Find, verify, and chase better acquisition data.</h1>
-          <p>Saved searches scout public sources, then Deal Radar scores what is visible and drafts the data request for whatever is missing.</p>
-        </div>
-        <div class="status-pill" id="backend-status">Checking backend</div>
+    <section>
+      <div class="section-label">03 - Current lines</div>
+      <h2>The portfolio can be visible without making every internal detail public.</h2>
+      <div class="grid">
+        <article class="card">
+          <div class="card-number">01</div>
+          <h3>Understudy Brain</h3>
+          <p>Internal operating system for research, memory, tasks, and daily scouting.</p>
+        </article>
+        <article class="card">
+          <div class="card-number">02</div>
+          <h3>Acquisition tools</h3>
+          <p>Deal-finding and underwriting work will return later in a stronger form under the broader Understudy umbrella.</p>
+        </article>
+        <article class="card">
+          <div class="card-number">03</div>
+          <h3>Place-based business</h3>
+          <p>Hospitality or cultural work that can become its own durable business when timing is right.</p>
+        </article>
+        <article class="card">
+          <div class="card-number">04</div>
+          <h3>Studio experiments</h3>
+          <p>Smaller software, research, and builder relationships that may grow into future companies.</p>
+        </article>
       </div>
-      <form class="search-panel" id="search-form" aria-label="Search acquisition opportunities">
-        <input id="search-input" type="search" placeholder="Search name, city, asset type, cap rate, tags, or missing data">
-        <button type="submit">Search Deals</button>
-      </form>
-      <div class="filter-row" aria-label="Quick filters">
-        <button class="filter-chip active" data-filter="all">All</button>
-        <button class="filter-chip" data-filter="high-confidence">High confidence</button>
-        <button class="filter-chip" data-filter="missing-docs">Missing docs</button>
-        <button class="filter-chip" data-filter="high-score">Score 85+</button>
+      <div class="status-note">
+        The previous Deal Radar surface has been taken out of public circulation while the next version is rebuilt privately.
       </div>
-      <div class="action-row">
-        <p>Current scraper sources are public broker/listing pages. Imported leads stay unverified until documents or broker replies support the numbers.</p>
-        <div class="action-buttons">
-          <button class="secondary-action" id="open-web-search" type="button">Scrape Public Sources</button>
-          <button class="secondary-action" id="open-agent" type="button">Search Agent</button>
-          <button class="secondary-action" id="open-image-import" type="button">Upload Screenshot</button>
-          <button class="danger-action quiet-action" id="clear-web-leads" type="button">Clear Scout Leads</button>
-          <button class="primary-action" id="open-add-deal" type="button">Add Deal</button>
-        </div>
-      </div>
-      <div class="source-strip" aria-label="Current public scraper sources">
-        <span class="source-chip">BusinessBroker.net</span>
-        <span class="source-chip">BizBuySell</span>
-        <span class="source-chip">BizQuest</span>
-        <span class="source-chip">LoopNet</span>
-        <span class="source-chip">Crexi</span>
-        <span class="source-chip">Sunbelt Network</span>
-        <span class="source-chip">Bing public index</span>
-      </div>
-      <section class="metrics" aria-label="Pipeline metrics">
-        <div class="metric"><span>Visible Deals</span><strong id="metric-visible">0</strong></div>
-        <div class="metric"><span>Avg Deal Score</span><strong id="metric-score">0</strong></div>
-        <div class="metric"><span>Avg Confidence</span><strong id="metric-confidence">0%</strong></div>
-        <div class="metric"><span>Missing Items</span><strong id="metric-missing">0</strong></div>
-      </section>
-      <section class="agent-panel" id="agent-panel" aria-label="Search agent">
-        <div class="agent-head">
-          <div>
-            <h2>Search Agent</h2>
-            <p>Saved searches scrape allowed public listing pages slowly, then use public search results for BizBuySell, BizQuest, LoopNet, Crexi, Sunbelt Network, and broader source discovery.</p>
-          </div>
-          <div class="action-buttons">
-            <button class="secondary-action" id="run-all-searches" type="button">Run Scraper</button>
-            <button class="primary-action" id="open-agent-secondary" type="button">New Search</button>
-          </div>
-        </div>
-        <div class="agent-list" id="agent-list"></div>
-      </section>
-      <div id="sections"></div>
-      <div class="empty-state" id="empty-state">No listings match that search. Try asset type, city, score, or one of the missing data flags.</div>
-    </main>
+    </section>
 
-    <aside class="detail-panel" id="detail-panel" aria-label="Selected deal underwriting panel">
-      <div class="panel-header">
-        <span class="panel-eyebrow" id="panel-type">Selected Deal</span>
-        <h2 id="panel-title">Select a deal card</h2>
-        <p id="panel-summary">Click any listing to view the score explanation, confidence level, underwriting stats, and missing-data checklist.</p>
-        <a class="source-link" id="panel-source-link" href="#" target="_blank" rel="noreferrer">Open source listing</a>
-        <div class="panel-actions">
-          <button class="danger-action" id="delete-selected" type="button" disabled>Delete selected</button>
-        </div>
-      </div>
-      <div class="score-block">
-        <div class="score-main">
-          <div>
-            <div class="score-number" id="panel-score">--</div>
-            <div class="score-label">Deal Score</div>
-          </div>
-          <span class="badge watch" id="panel-badge">Waiting</span>
-        </div>
-        <div class="bar"><div class="bar-fill" id="score-bar"></div></div>
-      </div>
-      <div class="score-block">
-        <div class="score-main">
-          <div>
-            <div class="score-number" id="panel-confidence">--</div>
-            <div class="score-label">Confidence</div>
-          </div>
-          <span class="badge mid" id="panel-verified">Unverified</span>
-        </div>
-        <div class="bar"><div class="bar-fill" id="confidence-bar"></div></div>
-      </div>
-      <div class="panel-grid" id="panel-stats"></div>
-      <div class="panel-section">
-        <h3>Deal Score Explanation</h3>
-        <ul class="reason-list" id="panel-reasons"></ul>
-      </div>
-      <div class="panel-section">
-        <h3>Missing-Data Flags</h3>
-        <ul class="missing-list" id="panel-missing"></ul>
-      </div>
-      <div class="panel-section">
-        <h3>Contact & Data Request</h3>
-        <div class="contact-tools">
-          <div class="panel-actions">
-            <button class="secondary-action" id="find-contact" type="button" disabled>Find contact</button>
-            <button class="primary-action" id="draft-email" type="button" disabled>Draft email</button>
-          </div>
-          <textarea class="draft-box" id="email-draft" readonly placeholder="Select a listing, then draft a missing-data request."></textarea>
-        </div>
-      </div>
-      <div class="panel-section">
-        <h3>Deal Memo Output</h3>
-        <div class="memo-box" id="panel-memo">Select a listing to generate a concise acquisition memo.</div>
-      </div>
-    </aside>
-  </div>
-
-  <div class="modal-backdrop" id="deal-modal" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deal-modal-title">
-      <div class="modal-header">
-        <div>
-          <h2 id="deal-modal-title">Add a Deal</h2>
-          <p>Paste in the core listing facts you have. Deal Radar will score it, label confidence, and flag missing diligence.</p>
-        </div>
-        <button class="icon-button" id="close-add-deal" type="button" aria-label="Close add deal form">&times;</button>
-      </div>
-      <form class="deal-form" id="deal-form">
-        <div class="form-grid">
-          <div class="field">
-            <label for="deal-name">Deal name</label>
-            <input id="deal-name" name="name" required placeholder="Example: Oak Street Laundromat">
-          </div>
-          <div class="field">
-            <label for="deal-type">Asset type</label>
-            <select id="deal-type" name="type" required>
-              <option value="Laundromat">Laundromat</option>
-              <option value="Hotel">Hotel</option>
-              <option value="Car Wash">Car Wash</option>
-              <option value="Auto Repair">Auto Repair</option>
-              <option value="Liquor Store">Liquor Store</option>
-              <option value="Industrial">Industrial</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="deal-location">Location</label>
-            <input id="deal-location" name="location" required placeholder="City, ST">
-          </div>
-          <div class="field">
-            <label for="deal-ask">Asking price</label>
-            <input id="deal-ask" name="ask" type="number" min="1" step="1000" required placeholder="850000">
-          </div>
-          <div class="field">
-            <label for="deal-income-label">Income metric</label>
-            <select id="deal-income-label" name="incomeLabel" required>
-              <option value="NOI">NOI</option>
-              <option value="SDE">SDE</option>
-              <option value="Keys">Hotel keys</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="deal-income">Income / key count</label>
-            <input id="deal-income" name="income" type="number" min="0" step="1000" required placeholder="150000">
-          </div>
-          <div class="field full">
-            <label for="deal-notes">Listing notes</label>
-            <textarea id="deal-notes" name="notes" placeholder="What does the seller claim? What is the upside? What worries you?"></textarea>
-          </div>
-          <div class="field full">
-            <label>Documents received</label>
-            <div class="doc-grid">
-              <label class="doc-check"><input type="checkbox" name="docs" value="financials"> P&L or tax return</label>
-              <label class="doc-check"><input type="checkbox" name="docs" value="lease"> Lease or rent roll</label>
-              <label class="doc-check"><input type="checkbox" name="docs" value="utilities"> Utility bills</label>
-              <label class="doc-check"><input type="checkbox" name="docs" value="equipment"> Equipment / capex list</label>
-              <label class="doc-check"><input type="checkbox" name="docs" value="taxes"> Property tax record</label>
-              <label class="doc-check"><input type="checkbox" name="docs" value="insurance"> Insurance quote</label>
-            </div>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="secondary-action" id="cancel-add-deal" type="button">Cancel</button>
-          <button class="primary-action" type="submit">Score Deal</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="image-modal" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="image-modal-title">
-      <div class="modal-header">
-        <div>
-          <h2 id="image-modal-title">Upload a Screenshot</h2>
-          <p>Upload a broker screenshot, listing photo, or screen grab. The backend will extract visible fields and create an unverified scored deal.</p>
-        </div>
-        <button class="icon-button" id="close-image-import" type="button" aria-label="Close screenshot upload form">&times;</button>
-      </div>
-      <form class="deal-form" id="image-form">
-        <div class="field">
-          <label for="listing-image">Screenshot or photo</label>
-          <input id="listing-image" name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
-        </div>
-        <div class="memo-box">Requires the backend running on localhost and an <code>OPENAI_API_KEY</code> environment variable. Extracted values are treated as unverified.</div>
-        <div class="form-actions">
-          <button class="secondary-action" id="cancel-image-import" type="button">Cancel</button>
-          <button class="primary-action" type="submit">Extract Deal</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="web-search-modal" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="web-search-title">
-      <div class="modal-header">
-        <div>
-          <h2 id="web-search-title">Scrape Public Sources</h2>
-          <p>Scrape allowed public broker/listing pages and import real candidate listings. Deal Radar marks weak or missing financials as low confidence instead of pretending they are underwritten.</p>
-        </div>
-        <button class="icon-button" id="close-web-search" type="button" aria-label="Close web search form">&times;</button>
-      </div>
-      <form class="deal-form" id="web-search-form">
-        <div class="form-grid">
-          <div class="field">
-            <label for="web-type">Asset type</label>
-            <select id="web-type" name="type">
-              <option value="all">All priority targets</option>
-              <option value="Laundromat">Laundromat</option>
-              <option value="Car Wash">Car Wash</option>
-              <option value="Auto Repair">Auto Repair</option>
-              <option value="Hotel">Hotel</option>
-              <option value="Liquor Store">Liquor Store</option>
-              <option value="Industrial">Industrial</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="web-location">Location</label>
-            <input id="web-location" name="location" required placeholder="Florida, Dallas TX, Phoenix AZ, Sun Belt">
-          </div>
-          <div class="field">
-            <label for="web-max-ask">Max asking price</label>
-            <input id="web-max-ask" name="maxAsk" type="number" min="0" step="50000" placeholder="No cap">
-          </div>
-          <div class="field">
-            <label for="web-limit">Result limit</label>
-            <input id="web-limit" name="limit" type="number" min="1" max="12" value="6">
-          </div>
-        </div>
-        <div class="memo-box">Current direct scraper: BusinessBroker.net listing and detail pages, with robots checks and rate limiting. Broader broker sites are handled as source discovery unless a result exposes enough listing data to import.</div>
-        <div class="memo-box web-search-status" id="web-search-status"></div>
-        <div class="form-actions">
-          <button class="secondary-action" id="cancel-web-search" type="button">Cancel</button>
-          <button class="primary-action" type="submit">Scrape & Import</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="agent-modal" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="agent-modal-title">
-      <div class="modal-header">
-        <div>
-          <h2 id="agent-modal-title">Create Search Agent</h2>
-          <p>Save a repeatable search. Run it manually now, or later attach the run-all endpoint to a scheduled job.</p>
-        </div>
-        <button class="icon-button" id="close-agent" type="button" aria-label="Close search agent form">&times;</button>
-      </div>
-      <form class="deal-form" id="agent-form">
-        <div class="form-grid">
-          <div class="field">
-            <label for="agent-name">Search name</label>
-            <input id="agent-name" name="name" required placeholder="Florida laundromats under $1.5M">
-          </div>
-          <div class="field">
-            <label for="agent-type">Asset type</label>
-            <select id="agent-type" name="type">
-              <option value="all">All priority targets</option>
-              <option value="Laundromat">Laundromat</option>
-              <option value="Car Wash">Car Wash</option>
-              <option value="Auto Repair">Auto Repair</option>
-              <option value="Hotel">Hotel</option>
-              <option value="Liquor Store">Liquor Store</option>
-              <option value="Industrial">Industrial</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="agent-location">Location</label>
-            <input id="agent-location" name="location" required placeholder="Florida, DFW, Phoenix AZ">
-          </div>
-          <div class="field">
-            <label for="agent-max-ask">Max asking price</label>
-            <input id="agent-max-ask" name="maxAsk" type="number" min="0" step="50000" placeholder="No cap">
-          </div>
-          <div class="field">
-            <label for="agent-limit">Import limit</label>
-            <input id="agent-limit" name="limit" type="number" min="1" max="12" value="6">
-          </div>
-          <div class="field">
-            <label for="agent-frequency">Frequency</label>
-            <select id="agent-frequency" name="frequency">
-              <option value="manual">Manual</option>
-              <option value="daily">Daily target</option>
-              <option value="weekly">Weekly target</option>
-            </select>
-          </div>
-        </div>
-        <div class="memo-box">The agent scouts BizBuySell, BizQuest, LoopNet, Crexi, Sunbelt Network, and broader public results. It records every run and keeps source links even when no listing is clean enough to import.</div>
-        <div class="form-actions">
-          <button class="secondary-action" id="cancel-agent" type="button">Cancel</button>
-          <button class="primary-action" type="submit">Save Search</button>
-        </div>
-      </form>
-      <div class="panel-section">
-        <h3>Recent Agent Runs</h3>
-        <div class="run-list" id="agent-runs"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const sampleDeals = [
-      { id: "spin-cycle-express", name: "SpinCycle Express", type: "Laundromat", location: "Phoenix, AZ", ask: 840000, incomeLabel: "NOI", income: 156000, metricLabel: "Cap", metric: "18.6%", score: 92, confidence: 86, verified: true, summary: "Strong equipment base, below-market wash pricing, and room for unattended hours expansion.", tags: ["Lease Quality", "Automation", "Value Add"], reasons: ["Reported NOI supports a high implied yield at the asking price.", "Equipment list is mostly complete and supports lower near-term capex risk.", "Pricing and service mix leave a clear value-add path through card readers and wash-dry-fold."], missing: ["Utility bills by month", "Lease assignment consent", "Machine-level maintenance history"], memo: "Attractive laundromat acquisition with strong cash yield and identifiable operational upside. Proceed to LOI only after utility normalization and landlord assignment confirmation." },
-      { id: "metro-wash-house", name: "Metro Wash House", type: "Laundromat", location: "Cleveland, OH", ask: 610000, incomeLabel: "NOI", income: 98000, metricLabel: "Cap", metric: "16.1%", score: 81, confidence: 71, verified: false, summary: "Durable local traffic with upside from payment modernization and wash-dry-fold services.", tags: ["Stable Demand", "Tech Upgrade"], reasons: ["Cash flow appears solid relative to price, but documentation is incomplete.", "Neighborhood demand is steady and operating complexity is moderate.", "Technology upgrades create measurable revenue and labor-efficiency upside."], missing: ["Tax returns", "Lease renewal option", "Equipment age schedule", "Payroll detail"], memo: "Good operational candidate with clear modernization upside. Confidence is medium because seller financials need verification before valuation is reliable." },
-      { id: "summit-inn", name: "Summit Inn Flag Conversion", type: "Hotel", location: "Boise, ID", ask: 4200000, incomeLabel: "Keys", income: 58, metricLabel: "RevPAR", metric: "$82", score: 89, confidence: 78, verified: false, summary: "Rate gap versus the comp set suggests repositioning upside after light PIP investment.", tags: ["Brand Upside", "PIP", "Rate Gap"], reasons: ["RevPAR trails nearby comparable assets, creating a credible repositioning thesis.", "Asset size is large enough for professional management without becoming institutional.", "Debt coverage may work if PIP budget stays controlled."], missing: ["Trailing 12 P&L", "Franchise PIP quote", "Occupancy by channel", "Property condition report"], memo: "Promising hospitality repositioning deal. The investment case depends on disciplined renovation scope and reliable trailing financials." },
-      { id: "desert-suites", name: "Desert Suites", type: "Hotel", location: "Las Cruces, NM", ask: 2900000, incomeLabel: "Keys", income: 44, metricLabel: "DSCR", metric: "1.18x", score: 74, confidence: 62, verified: false, summary: "Attractive basis, but thin debt coverage requires conservative leverage assumptions.", tags: ["Financing Fit", "Basis"], reasons: ["Purchase basis is reasonable, but current cash flow leaves limited room for debt-service error.", "Smaller key count increases management sensitivity.", "Upside exists, but the financing case needs tighter documentation."], missing: ["Lender quote", "ADR history", "Capex budget", "Insurance quote", "Tax reassessment estimate"], memo: "Watchlist hotel deal. Do not advance without a financing model, insurance quote, and verified operating history." },
-      { id: "northline-spirits", name: "Northline Spirits", type: "Liquor Store", location: "Columbus, OH", ask: 1100000, incomeLabel: "SDE", income: 245000, metricLabel: "Margin", metric: "31%", score: 91, confidence: 83, verified: true, summary: "Strong category mix and favorable lease with upside from premium inventory rotation.", tags: ["Inventory", "Lease Quality", "Margin"], reasons: ["Seller discretionary earnings support a reasonable acquisition multiple.", "Lease terms reduce occupancy risk and improve financeability.", "Premium category expansion can improve gross margin without changing the footprint."], missing: ["Inventory aging report", "License transfer timeline", "Point-of-sale export"], memo: "High-priority retail cash-flow deal with good earnings support. Verify inventory quality and license transfer before submitting final terms." },
-      { id: "canyon-beverage", name: "Canyon Beverage Mart", type: "Liquor Store", location: "Reno, NV", ask: 930000, incomeLabel: "SDE", income: 176000, metricLabel: "Multiple", metric: "5.3x", score: 80, confidence: 68, verified: false, summary: "Consistent sales, but diligence should focus on license timing and shrink controls.", tags: ["License", "Shrink", "Inventory"], reasons: ["Headline multiple is acceptable if add-backs are real.", "Store has stable demand signals but weaker documentation quality.", "Shrink and inventory controls materially affect the true earnings base."], missing: ["Add-back support", "Shrink report", "License transfer approval", "Vendor concentration"], memo: "Useful candidate for diligence, not yet a conviction deal. The next step is validating SDE and inventory control quality." },
-      { id: "east-loop-flex", name: "East Loop Flex Park", type: "Industrial", location: "San Antonio, TX", ask: 3800000, incomeLabel: "NOI", income: 284000, metricLabel: "Occ.", metric: "96%", score: 94, confidence: 88, verified: true, summary: "Below-market rents, staggered leases, and strong small-bay demand support rent resets.", tags: ["Rent Growth", "Occupancy", "Industrial"], reasons: ["High occupancy and staggered rollover lower near-term income volatility.", "Current rents appear below market, creating a clean mark-to-market thesis.", "Small-bay demand improves tenant replacement probability."], missing: ["Environmental report", "Roof inspection", "Tenant estoppels"], memo: "Best-in-pipeline industrial opportunity. Advance to full underwriting and request third-party diligence reports." },
-      { id: "railspur-warehouse", name: "Railspur Warehouse", type: "Industrial", location: "Kansas City, MO", ask: 2400000, incomeLabel: "NOI", income: 171000, metricLabel: "Cap", metric: "7.1%", score: 85, confidence: 74, verified: false, summary: "Functional loading and infill location are positives; roof reserve should be modeled.", tags: ["Infill", "Roof Reserve", "Industrial"], reasons: ["Going-in yield is acceptable for a functional infill warehouse.", "Physical plant risk is manageable if roof reserve is priced correctly.", "Location and loading features support tenant demand."], missing: ["Roof quote", "Phase I environmental", "Lease abstracts", "CAM reconciliation"], memo: "Solid industrial candidate with a specific diligence question: roof cost. Price adjustment should depend on inspection outcome." }
-    ];
-
-    const staticPreviewHosts = ["sl853.github.io"];
-    const apiBase = window.location.protocol === "file:" || staticPreviewHosts.includes(window.location.hostname) ? null : "";
-    const savedDeals = loadLocalDeals();
-    let deals = [...savedDeals];
-    let searchProfiles = [];
-    let searchRuns = [];
-
-    const categoryCopy = {
-      "Laundromat": "Cash-flowing local operators with automation and pickup-delivery upside.",
-      "Hotel": "Limited-service assets with rate optimization and renovation repositioning potential.",
-      "Car Wash": "Equipment-heavy local service assets where capex, traffic, and site quality drive returns.",
-      "Auto Repair": "Recurring local service demand with technician dependency, equipment, lease, and reputation risk.",
-      "Liquor Store": "Local retail cash flow with inventory controls, licensing, and margin expansion signals.",
-      "Industrial": "Small-bay warehouses and service industrial with tenant durability and rent growth.",
-      "Research Lead": "Relevant source leads that need contact discovery, documents, and field verification."
-    };
-
-    const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-    const compactCurrency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
-    let activeCategory = "all";
-    let activeQuickFilter = "all";
-    let selectedId = deals[0]?.id;
-
-    const sectionsEl = document.getElementById("sections");
-    const emptyEl = document.getElementById("empty-state");
-    const searchInput = document.getElementById("search-input");
-    const backendStatus = document.getElementById("backend-status");
-    const backendOnlyButtons = [document.getElementById("open-web-search"), document.getElementById("open-image-import"), document.getElementById("clear-web-leads")];
-    const sourceLinkEl = document.getElementById("panel-source-link");
-    const deleteSelectedButton = document.getElementById("delete-selected");
-    const webSearchStatus = document.getElementById("web-search-status");
-    const agentListEl = document.getElementById("agent-list");
-    const agentRunsEl = document.getElementById("agent-runs");
-    const detailPanelEl = document.getElementById("detail-panel");
-    const findContactButton = document.getElementById("find-contact");
-    const draftEmailButton = document.getElementById("draft-email");
-    const emailDraftEl = document.getElementById("email-draft");
-
-    function scoreClass(value) {
-      if (value >= 88) return "high";
-      if (value >= 78) return "mid";
-      if (value >= 65) return "watch";
-      return "low";
-    }
-    function confidenceClass(value) {
-      if (value >= 82) return "high";
-      if (value >= 70) return "mid";
-      return "watch";
-    }
-    function slug(value) {
-      return value.toLowerCase().replace(/\s+/g, "-");
-    }
-    function escapeHtml(value = "") {
-      return String(value).replace(/[&<>"']/g, (char) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        "\"": "&quot;",
-        "'": "&#39;"
-      }[char]));
-    }
-    function sourceUrlFor(deal) {
-      return String(deal.summary || "").match(/https?:\/\/\S+/)?.[0]?.replace(/[).,;]+$/, "") || "";
-    }
-    function contactSearchUrlFor(deal) {
-      const sourceUrl = sourceUrlFor(deal);
-      const query = `${deal.name} ${deal.location} broker contact business for sale ${sourceUrl}`;
-      return `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
-    }
-    function dataRequestDraftFor(deal) {
-      const sourceUrl = sourceUrlFor(deal);
-      const missing = deal.missing.length ? deal.missing.map((item) => `- ${item}`).join("\n") : "- Current P&L or tax return\n- Lease or rent details\n- Equipment/capex detail";
-      return [
-        `Subject: ${deal.name} - request for diligence package`,
-        "",
-        "Hi,",
-        "",
-        `I am reviewing ${deal.name} in ${deal.location}. Before we rely on the published asking price, ${deal.incomeLabel}, or ${deal.metricLabel}, can you please send the items below or confirm they are unavailable?`,
-        "",
-        missing,
-        "",
-        "A few clarification questions:",
-        `- Is the reported ${deal.incomeLabel} seller-discretionary cash flow, EBITDA, NOI, or another metric?`,
-        "- What period does the reported income cover?",
-        "- Are add-backs documented and repeatable?",
-        "- Is real estate included or is this an operating-business sale only?",
-        "- Who is the best contact for source documents and follow-up questions?",
-        "",
-        sourceUrl ? `Source reviewed: ${sourceUrl}` : "Source reviewed: listing summary in Deal Radar",
-        "",
-        "Thanks,"
-      ].join("\n");
-    }
-    function formatTime(value) {
-      if (!value) return "Never";
-      return new Date(value).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-    }
-    function moneyOrUnknown(value) {
-      return Number(value) > 0 ? compactCurrency.format(value) : "Unknown";
-    }
-    function fullMoneyOrUnknown(value) {
-      return Number(value) > 0 ? currency.format(value) : "Unknown";
-    }
-    function incomeOrUnknown(deal, formatter = compactCurrency) {
-      if (deal.incomeLabel === "Keys") return deal.income || "Unknown";
-      return Number(deal.income) > 0 ? formatter.format(deal.income) : "Unknown";
-    }
-    function matchesSearch(deal, term) {
-      if (!term) return true;
-      const haystack = [deal.name, deal.type, deal.location, deal.metric, deal.summary, ...deal.tags, ...deal.reasons, ...deal.missing].join(" ").toLowerCase();
-      return haystack.includes(term.toLowerCase());
-    }
-    function filteredDeals() {
-      const term = searchInput.value.trim();
-      return deals.filter((deal) => {
-        const categoryMatch = activeCategory === "all" || deal.type === activeCategory;
-        const searchMatch = matchesSearch(deal, term);
-        const quickMatch =
-          activeQuickFilter === "all" ||
-          (activeQuickFilter === "high-confidence" && deal.confidence >= 82) ||
-          (activeQuickFilter === "missing-docs" && deal.missing.length >= 4) ||
-          (activeQuickFilter === "high-score" && deal.score >= 85);
-        return categoryMatch && searchMatch && quickMatch;
-      });
-    }
-    function renderCounts() {
-      document.getElementById("count-all").textContent = deals.length;
-      ["Laundromat", "Hotel", "Car Wash", "Auto Repair", "Liquor Store", "Industrial"].forEach((type) => {
-        document.getElementById(`count-${slug(type)}`).textContent = deals.filter((deal) => deal.type === type).length;
-      });
-    }
-    function renderAgentPanel() {
-      if (!searchProfiles.length) {
-        agentListEl.innerHTML = `
-          <div class="run-row">
-            No saved searches yet. Create one for a market and asset type, then run it whenever you want the agent to scout public sources.
-          </div>
-        `;
-      } else {
-        agentListEl.innerHTML = searchProfiles.map((search) => `
-          <div class="agent-row">
-            <div>
-              <strong>${escapeHtml(search.name)}</strong>
-              <span>${escapeHtml(search.type === "all" ? "All priority targets" : search.type)} in ${escapeHtml(search.location)} - Max ask ${search.maxAsk ? compactCurrency.format(search.maxAsk) : "none"} - Last run ${formatTime(search.lastRunAt)}</span>
-            </div>
-            <button class="secondary-action run-search" data-id="${escapeHtml(search.id)}" type="button">Run</button>
-          </div>
-        `).join("");
-      }
-
-      agentRunsEl.innerHTML = searchRuns.length ? searchRuns.slice(0, 8).map((run) => {
-        const firstLink = run.sourceLinks?.[0];
-        return `
-          <div class="run-row">
-            <strong>${escapeHtml(run.criteria.location)} - ${escapeHtml(run.criteria.type === "all" ? "all targets" : run.criteria.type)}</strong><br>
-            ${escapeHtml(run.message)} Imported: ${run.importedCount}, existing: ${run.existingCount}.<br>
-            <span>${formatTime(run.createdAt)}</span>
-            ${firstLink ? `<br><a href="${escapeHtml(firstLink.url)}" target="_blank" rel="noreferrer">Open first source link</a>` : ""}
-          </div>
-        `;
-      }).join("") : `<div class="run-row">No agent runs yet.</div>`;
-
-      document.querySelectorAll(".run-search").forEach((button) => {
-        button.addEventListener("click", () => runSavedSearch(button.dataset.id, button));
-      });
-    }
-    function renderMetrics(list) {
-      const avgScore = list.length ? Math.round(list.reduce((sum, deal) => sum + deal.score, 0) / list.length) : 0;
-      const avgConfidence = list.length ? Math.round(list.reduce((sum, deal) => sum + deal.confidence, 0) / list.length) : 0;
-      const missing = list.reduce((sum, deal) => sum + deal.missing.length, 0);
-      document.getElementById("metric-visible").textContent = list.length;
-      document.getElementById("metric-score").textContent = avgScore;
-      document.getElementById("metric-confidence").textContent = `${avgConfidence}%`;
-      document.getElementById("metric-missing").textContent = missing;
-    }
-    function dealCard(deal) {
-      return `
-        <button class="deal-card ${deal.id === selectedId ? "active" : ""}" data-id="${deal.id}" type="button">
-          <div class="deal-top">
-            <div><h3>${deal.name}</h3><span class="location">${deal.location}</span></div>
-            <span class="badge ${scoreClass(deal.score)}">${deal.score} Score</span>
-          </div>
-          <div class="deal-stats">
-            <div class="deal-stat"><span>Ask</span><strong>${moneyOrUnknown(deal.ask)}</strong></div>
-            <div class="deal-stat"><span>${deal.incomeLabel}</span><strong>${incomeOrUnknown(deal)}</strong></div>
-            <div class="deal-stat"><span>${deal.metricLabel}</span><strong>${deal.metric}</strong></div>
-          </div>
-          <p class="insight">${deal.summary}</p>
-          <div class="tags">${deal.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}</div>
-        </button>
-      `;
-    }
-    function renderSections() {
-      const list = filteredDeals();
-      renderMetrics(list);
-      emptyEl.style.display = list.length ? "none" : "block";
-      const grouped = list.reduce((acc, deal) => {
-        acc[deal.type] = acc[deal.type] || [];
-        acc[deal.type].push(deal);
-        return acc;
-      }, {});
-      sectionsEl.innerHTML = Object.entries(grouped).map(([type, items]) => `
-        <section class="asset-section" id="${slug(type)}">
-          <div class="section-header">
-            <div>
-              <h2>${type === "Industrial" ? "Industrial Properties" : type === "Auto Repair" ? "Auto Repair Shops" : type === "Car Wash" ? "Car Washes" : `${type}s`}</h2>
-              <p>${categoryCopy[type] || "Relevant leads queued for contact discovery and verification."}</p>
-            </div>
-            <span class="badge watch">${items.length} visible</span>
-          </div>
-          <div class="deal-grid">${items.map(dealCard).join("")}</div>
-        </section>
-      `).join("");
-      document.querySelectorAll(".deal-card").forEach((card) => {
-        card.addEventListener("click", () => selectDeal(card.dataset.id, true));
-      });
-    }
-    function revealDealContext() {
-      detailPanelEl.scrollTo({ top: 0, behavior: "smooth" });
-      detailPanelEl.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    function selectDeal(id, reveal = false) {
-      selectedId = id;
-      const deal = deals.find((item) => item.id === id) || deals[0];
-      if (!deal) {
-        document.getElementById("panel-type").textContent = "No Deal Selected";
-        document.getElementById("panel-title").textContent = "No real listings yet";
-        document.getElementById("panel-summary").textContent = "Run a web search, upload a screenshot, or add a deal manually to populate the pipeline.";
-        document.getElementById("panel-score").textContent = "--";
-        document.getElementById("panel-badge").textContent = "Empty";
-        document.getElementById("panel-badge").className = "badge watch";
-        document.getElementById("score-bar").style.setProperty("--value", "0%");
-        document.getElementById("panel-confidence").textContent = "--";
-        document.getElementById("panel-verified").textContent = "No data";
-        document.getElementById("panel-verified").className = "badge watch";
-        document.getElementById("confidence-bar").style.setProperty("--value", "0%");
-        document.getElementById("panel-stats").innerHTML = "";
-        document.getElementById("panel-reasons").innerHTML = "";
-        document.getElementById("panel-missing").innerHTML = "";
-        document.getElementById("panel-memo").textContent = "Real listings will appear here after ingestion.";
-        sourceLinkEl.style.display = "none";
-        sourceLinkEl.href = "#";
-        deleteSelectedButton.disabled = true;
-        findContactButton.disabled = true;
-        draftEmailButton.disabled = true;
-        emailDraftEl.value = "";
-        renderSections();
-        return;
-      }
-      const sourceUrl = sourceUrlFor(deal);
-      document.getElementById("panel-type").textContent = `${deal.type} Underwriting`;
-      document.getElementById("panel-title").textContent = deal.name;
-      document.getElementById("panel-summary").textContent = `${deal.location} - ${deal.summary}`;
-      sourceLinkEl.style.display = sourceUrl ? "inline-flex" : "none";
-      sourceLinkEl.href = sourceUrl || "#";
-      deleteSelectedButton.disabled = false;
-      findContactButton.disabled = false;
-      draftEmailButton.disabled = false;
-      emailDraftEl.value = dataRequestDraftFor(deal);
-      document.getElementById("panel-score").textContent = deal.score;
-      document.getElementById("panel-badge").textContent = deal.score >= 85 ? "Priority" : deal.score >= 75 ? "Diligence" : "Watchlist";
-      document.getElementById("panel-badge").className = `badge ${scoreClass(deal.score)}`;
-      document.getElementById("score-bar").style.setProperty("--value", `${deal.score}%`);
-      document.getElementById("panel-confidence").textContent = `${deal.confidence}%`;
-      document.getElementById("panel-verified").textContent = deal.verified ? "Verified" : "Unverified";
-      document.getElementById("panel-verified").className = `badge ${deal.verified ? "high" : confidenceClass(deal.confidence)}`;
-      document.getElementById("confidence-bar").style.setProperty("--value", `${deal.confidence}%`);
-      document.getElementById("panel-stats").innerHTML = `
-        <div class="panel-stat"><span>Asking Price</span><strong>${fullMoneyOrUnknown(deal.ask)}</strong></div>
-        <div class="panel-stat"><span>${deal.incomeLabel}</span><strong>${incomeOrUnknown(deal, currency)}</strong></div>
-        <div class="panel-stat"><span>${deal.metricLabel}</span><strong>${deal.metric}</strong></div>
-        <div class="panel-stat"><span>Missing Items</span><strong>${deal.missing.length}</strong></div>
-      `;
-      document.getElementById("panel-reasons").innerHTML = deal.reasons.map((reason) => `<li>${reason}</li>`).join("");
-      document.getElementById("panel-missing").innerHTML = deal.missing.map((item) => `<li>${item}</li>`).join("");
-      document.getElementById("panel-memo").textContent = deal.memo;
-      renderSections();
-      if (reveal) revealDealContext();
-    }
-
-    function saveUserDeals() {
-      if (apiBase !== null) return;
-      const userDeals = deals.filter((deal) => deal.source === "manual");
-      saveLocalDeals(userDeals);
-    }
-
-    function loadLocalDeals() {
-      try {
-        const storage = window.localStorage;
-        if (!storage) return [];
-        return JSON.parse(storage.getItem("dealRadarDeals") || "[]");
-      } catch (error) {
-        console.warn("Browser storage unavailable; using empty local deal list.", error);
-        return [];
-      }
-    }
-
-    function saveLocalDeals(userDeals) {
-      try {
-        const storage = window.localStorage;
-        if (!storage) return;
-        storage.setItem("dealRadarDeals", JSON.stringify(userDeals));
-      } catch (error) {
-        console.warn("Browser storage unavailable; deal was not saved locally.", error);
-      }
-    }
-
-    function resetFilters() {
-      activeCategory = "all";
-      activeQuickFilter = "all";
-      searchInput.value = "";
-      document.querySelectorAll(".nav-link[data-filter]").forEach((item) => item.classList.toggle("active", item.dataset.filter === "all"));
-      document.querySelectorAll(".filter-chip").forEach((item) => item.classList.toggle("active", item.dataset.filter === "all"));
-    }
-
-    function selectedDocs(formData) {
-      return Array.from(document.querySelectorAll("input[name='docs']:checked")).map((input) => input.value);
-    }
-
-    function scoreManualDeal({ ask, income, incomeLabel, type, docs, notes }) {
-      const docScore = docs.length * 6;
-      const noteBoost = notes.trim().length > 35 ? 5 : 0;
-      const yieldPercent = incomeLabel === "Keys" ? 0 : (income / ask) * 100;
-      let score = 55 + docScore + noteBoost;
-
-      if (incomeLabel === "NOI") {
-        if (yieldPercent >= 12) score += 22;
-        else if (yieldPercent >= 8) score += 15;
-        else if (yieldPercent >= 6) score += 9;
-        else score += 2;
-      } else if (incomeLabel === "SDE") {
-        const multiple = ask / Math.max(income, 1);
-        if (multiple <= 3.5) score += 22;
-        else if (multiple <= 5) score += 15;
-        else if (multiple <= 6.5) score += 8;
-        else score += 1;
-      } else {
-        const askPerKey = ask / Math.max(income, 1);
-        if (askPerKey <= 70000) score += 18;
-        else if (askPerKey <= 100000) score += 11;
-        else score += 4;
-      }
-
-      if (type === "Industrial" && docs.includes("lease")) score += 4;
-      if (type === "Laundromat" && docs.includes("utilities")) score += 4;
-      if (type === "Hotel" && docs.includes("insurance")) score += 3;
-      if (type === "Liquor Store" && docs.includes("financials")) score += 3;
-
-      const confidence = Math.min(95, 35 + docs.length * 9 + (notes.trim().length > 35 ? 6 : 0));
-      return { score: Math.max(40, Math.min(96, Math.round(score))), confidence };
-    }
-
-    function missingItemsFor(type, docs, incomeLabel) {
-      const docLabels = {
-        financials: "P&L or tax return",
-        lease: "Lease or rent roll",
-        utilities: "Utility bills",
-        equipment: "Equipment / capex list",
-        taxes: "Property tax record",
-        insurance: "Insurance quote"
-      };
-      const missing = Object.entries(docLabels)
-        .filter(([key]) => !docs.includes(key))
-        .map(([, label]) => label);
-
-      if (type === "Hotel" && incomeLabel === "Keys") missing.unshift("Trailing 12 operating statement");
-      if (type === "Liquor Store") missing.push("License transfer timeline");
-      if (type === "Industrial") missing.push("Environmental report");
-      if (type === "Laundromat") missing.push("Machine-level maintenance history");
-      return missing.slice(0, 6);
-    }
-
-    function metricFor({ ask, income, incomeLabel }) {
-      if (incomeLabel === "Keys") {
-        return { metricLabel: "Ask/key", metric: compactCurrency.format(ask / Math.max(income, 1)) };
-      }
-      if (incomeLabel === "SDE") {
-        return { metricLabel: "Multiple", metric: `${(ask / Math.max(income, 1)).toFixed(1)}x` };
-      }
-      return { metricLabel: "Cap", metric: `${((income / ask) * 100).toFixed(1)}%` };
-    }
-
-    function createManualDeal(formData) {
-      const name = formData.get("name").trim();
-      const type = formData.get("type");
-      const location = formData.get("location").trim();
-      const ask = Number(formData.get("ask"));
-      const incomeLabel = formData.get("incomeLabel");
-      const income = Number(formData.get("income"));
-      const notes = formData.get("notes") || "";
-      const docs = selectedDocs(formData);
-      const { score, confidence } = scoreManualDeal({ ask, income, incomeLabel, type, docs, notes });
-      const { metricLabel, metric } = metricFor({ ask, income, incomeLabel });
-      const missing = missingItemsFor(type, docs, incomeLabel);
-      const verified = confidence >= 82;
-      const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${Date.now()}`;
-
-      return {
-        id,
-        source: "manual",
-        name,
-        type,
-        location,
-        ask,
-        incomeLabel,
-        income,
-        metricLabel,
-        metric,
-        score,
-        confidence,
-        verified,
-        summary: notes.trim() || "Manual listing added for initial Deal Radar scoring and diligence review.",
-        tags: ["Manual Entry", verified ? "Verified Inputs" : "Needs Verification", score >= 85 ? "Priority" : "Diligence"],
-        reasons: [
-          incomeLabel === "Keys" ? `Initial hotel basis is ${metric}.` : `${incomeLabel} implies ${metric} at the asking price.`,
-          `${docs.length} of 6 core diligence documents were marked as received.`,
-          confidence >= 82 ? "Confidence is high enough for deeper underwriting." : "Confidence is limited by missing source documents."
-        ],
-        missing,
-        memo: `${name} is a ${type.toLowerCase()} opportunity in ${location} with an initial Deal Score of ${score} and ${confidence}% confidence. Next step: request the missing diligence items before treating the valuation as reliable.`
-      };
-    }
-
-    function openModal() {
-      document.getElementById("deal-modal").classList.add("open");
-      document.getElementById("deal-modal").setAttribute("aria-hidden", "false");
-      document.getElementById("deal-name").focus();
-    }
-
-    function closeModal() {
-      document.getElementById("deal-modal").classList.remove("open");
-      document.getElementById("deal-modal").setAttribute("aria-hidden", "true");
-    }
-
-    function openImageModal() {
-      document.getElementById("image-modal").classList.add("open");
-      document.getElementById("image-modal").setAttribute("aria-hidden", "false");
-      document.getElementById("listing-image").focus();
-    }
-
-    function closeImageModal() {
-      document.getElementById("image-modal").classList.remove("open");
-      document.getElementById("image-modal").setAttribute("aria-hidden", "true");
-    }
-
-    function openWebSearchModal() {
-      document.getElementById("web-search-modal").classList.add("open");
-      document.getElementById("web-search-modal").setAttribute("aria-hidden", "false");
-      webSearchStatus.style.display = "none";
-      webSearchStatus.innerHTML = "";
-      if (!document.getElementById("web-location").value.trim()) {
-        document.getElementById("web-location").value = "Florida";
-      }
-      document.getElementById("web-location").focus();
-    }
-
-    function closeWebSearchModal() {
-      document.getElementById("web-search-modal").classList.remove("open");
-      document.getElementById("web-search-modal").setAttribute("aria-hidden", "true");
-    }
-
-    function openAgentModal() {
-      document.getElementById("agent-modal").classList.add("open");
-      document.getElementById("agent-modal").setAttribute("aria-hidden", "false");
-      document.getElementById("agent-name").focus();
-    }
-
-    function closeAgentModal() {
-      document.getElementById("agent-modal").classList.remove("open");
-      document.getElementById("agent-modal").setAttribute("aria-hidden", "true");
-    }
-
-    async function loadDealsFromApi() {
-      if (apiBase === null) {
-        backendStatus.textContent = "Static demo mode";
-        backendOnlyButtons.forEach((button) => {
-          button.disabled = true;
-          button.title = "Open the backend-hosted app to use this.";
-        });
-        return false;
-      }
-      try {
-        const response = await fetch("/api/deals");
-        if (!response.ok) throw new Error("API unavailable");
-        const payload = await readJson(response);
-        deals = payload.deals;
-        selectedId = deals[0]?.id;
-        backendStatus.textContent = "Backend connected";
-        return true;
-      } catch (error) {
-        console.warn("Deal Radar API unavailable; using browser-local data.", error);
-        backendStatus.textContent = "Backend unavailable";
-        return false;
-      }
-    }
-
-    async function loadAgentState() {
-      if (apiBase === null) {
-        renderAgentPanel();
-        return;
-      }
-      try {
-        const [searchResponse, runsResponse] = await Promise.all([
-          fetch("/api/searches"),
-          fetch("/api/search-runs?limit=20")
-        ]);
-        const searchPayload = await readJson(searchResponse);
-        const runsPayload = await readJson(runsResponse);
-        if (!searchResponse.ok) throw new Error(searchPayload.error || "Could not load searches.");
-        if (!runsResponse.ok) throw new Error(runsPayload.error || "Could not load search runs.");
-        searchProfiles = searchPayload.searches || [];
-        searchRuns = runsPayload.runs || [];
-      } catch (error) {
-        console.warn("Could not load search agent state.", error);
-      }
-      renderAgentPanel();
-    }
-
-    async function readJson(response) {
-      const contentType = response.headers.get("content-type") || "";
-      const text = await response.text();
-      if (!contentType.includes("application/json")) {
-        const preview = text.slice(0, 80).replace(/\s+/g, " ");
-        throw new Error(`Expected JSON from backend, but got ${contentType || "unknown content"}. Make sure you are using the backend-hosted app URL. Preview: ${preview}`);
-      }
-      try {
-        return JSON.parse(text);
-      } catch (error) {
-        throw new Error(`Backend returned invalid JSON: ${error.message}`);
-      }
-    }
-
-    async function createDealViaApi(formData) {
-      const docs = selectedDocs(formData);
-      const payload = {
-        name: formData.get("name"),
-        type: formData.get("type"),
-        location: formData.get("location"),
-        ask: Number(formData.get("ask")),
-        incomeLabel: formData.get("incomeLabel"),
-        income: Number(formData.get("income")),
-        notes: formData.get("notes") || "",
-        docs
-      };
-
-      if (apiBase === null) return createManualDeal(formData);
-
-      const response = await fetch("/api/deals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const result = await readJson(response);
-      if (!response.ok) throw new Error(result.error || "Could not save deal.");
-      return result.deal;
-    }
-
-    async function extractImageViaApi(form) {
-      if (apiBase === null) throw new Error("Screenshot extraction requires the backend-hosted app.");
-      const response = await fetch("/api/deals/extract-image", {
-        method: "POST",
-        body: new FormData(form)
-      });
-      const result = await readJson(response);
-      if (!response.ok) throw new Error(result.error || "Could not extract listing from image.");
-      return result.deal;
-    }
-
-    async function runWebSearchViaApi(formData) {
-      if (apiBase === null) throw new Error("Web search requires the backend-hosted app.");
-      const payload = {
-        type: formData.get("type"),
-        location: formData.get("location"),
-        maxAsk: formData.get("maxAsk") ? Number(formData.get("maxAsk")) : null,
-        limit: Number(formData.get("limit"))
-      };
-      const response = await fetch("/api/deals/web-search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const result = await readJson(response);
-      if (!response.ok) throw new Error(result.error || "Could not run web search.");
-      return result;
-    }
-
-    async function createSearchViaApi(formData) {
-      if (apiBase === null) throw new Error("Search agents require the backend-hosted app.");
-      const payload = {
-        name: formData.get("name"),
-        type: formData.get("type"),
-        location: formData.get("location"),
-        maxAsk: formData.get("maxAsk") ? Number(formData.get("maxAsk")) : null,
-        limit: Number(formData.get("limit")),
-        frequency: formData.get("frequency")
-      };
-      const response = await fetch("/api/searches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const result = await readJson(response);
-      if (!response.ok) throw new Error(result.error || "Could not save search.");
-      return result.search;
-    }
-
-    async function runSearchViaApi(id) {
-      const response = await fetch(`/api/searches/${encodeURIComponent(id)}/run`, { method: "POST" });
-      const result = await readJson(response);
-      if (!response.ok) throw new Error(result.error || "Could not run search.");
-      return result;
-    }
-
-    async function runAllSearchesViaApi() {
-      const response = await fetch("/api/agent/run-all", { method: "POST" });
-      const result = await readJson(response);
-      if (!response.ok) throw new Error(result.error || "Could not run search agent.");
-      return result;
-    }
-
-    async function deleteDealViaApi(id) {
-      if (apiBase === null) {
-        deals = deals.filter((deal) => deal.id !== id);
-        saveUserDeals();
-        return;
-      }
-      const response = await fetch(`/api/deals/${encodeURIComponent(id)}`, { method: "DELETE" });
-      const result = await readJson(response);
-      if (!response.ok) throw new Error(result.error || "Could not delete deal.");
-    }
-
-    async function clearWebLeadsViaApi() {
-      if (apiBase === null) {
-        deals = deals.filter((deal) => !["web", "research"].includes(deal.source));
-        saveUserDeals();
-        return 0;
-      }
-      const response = await fetch("/api/deals?source=scout", { method: "DELETE" });
-      const result = await readJson(response);
-      if (!response.ok) throw new Error(result.error || "Could not clear scout leads.");
-      return result.deleted || 0;
-    }
-
-    async function refreshDealsAndAgent() {
-      await loadDealsFromApi();
-      await loadAgentState();
-      renderCounts();
-      selectDeal(selectedId || deals[0]?.id);
-    }
-
-    async function applyAgentResult(result) {
-      const importedDeals = result.deals || [];
-      if (importedDeals.length) {
-        deals = [...importedDeals, ...deals.filter((deal) => !importedDeals.some((item) => item.id === deal.id))];
-        selectedId = importedDeals[0].id;
-      }
-      await loadAgentState();
-      renderCounts();
-      resetFilters();
-      selectDeal(selectedId || deals[0]?.id);
-      if (!importedDeals.length) {
-        const links = (result.sourceLinks || []).map((link) => `\n${link.title}`).join("");
-        alert(`${result.message}${links ? `\n\nSource links to inspect:${links}` : ""}`);
-      }
-    }
-
-    async function runSavedSearch(id, button) {
-      button.disabled = true;
-      button.textContent = "Running...";
-      try {
-        const result = await runSearchViaApi(id);
-        await applyAgentResult(result);
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        button.disabled = false;
-        button.textContent = "Run";
-      }
-    }
-
-    document.getElementById("search-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      renderSections();
-    });
-    searchInput.addEventListener("input", renderSections);
-    document.querySelectorAll(".nav-link[data-filter]").forEach((button) => {
-      button.addEventListener("click", () => {
-        activeCategory = button.dataset.filter;
-        document.querySelectorAll(".nav-link[data-filter]").forEach((item) => item.classList.toggle("active", item === button));
-        renderSections();
-      });
-    });
-    document.querySelectorAll(".filter-chip").forEach((button) => {
-      button.addEventListener("click", () => {
-        activeQuickFilter = button.dataset.filter;
-        document.querySelectorAll(".filter-chip").forEach((item) => item.classList.toggle("active", item === button));
-        renderSections();
-      });
-    });
-    document.getElementById("open-add-deal").addEventListener("click", openModal);
-    document.getElementById("open-agent").addEventListener("click", openAgentModal);
-    document.getElementById("open-agent-secondary").addEventListener("click", openAgentModal);
-    document.getElementById("close-agent").addEventListener("click", closeAgentModal);
-    document.getElementById("cancel-agent").addEventListener("click", closeAgentModal);
-    document.getElementById("agent-modal").addEventListener("click", (event) => {
-      if (event.target.id === "agent-modal") closeAgentModal();
-    });
-    document.getElementById("run-all-searches").addEventListener("click", async (event) => {
-      const button = event.currentTarget;
-      button.disabled = true;
-      button.textContent = "Scraping...";
-      try {
-        await runAllSearchesViaApi();
-        await refreshDealsAndAgent();
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        button.disabled = false;
-        button.textContent = "Run Scraper";
-      }
-    });
-    findContactButton.addEventListener("click", () => {
-      const deal = deals.find((item) => item.id === selectedId);
-      if (!deal) return;
-      window.open(contactSearchUrlFor(deal), "_blank", "noopener,noreferrer");
-    });
-    draftEmailButton.addEventListener("click", async () => {
-      const deal = deals.find((item) => item.id === selectedId);
-      if (!deal) return;
-      emailDraftEl.value = dataRequestDraftFor(deal);
-      emailDraftEl.focus();
-      emailDraftEl.select();
-      try {
-        await navigator.clipboard.writeText(emailDraftEl.value);
-        draftEmailButton.textContent = "Copied";
-        setTimeout(() => {
-          draftEmailButton.textContent = "Draft email";
-        }, 1200);
-      } catch (_error) {
-        draftEmailButton.textContent = "Drafted";
-        setTimeout(() => {
-          draftEmailButton.textContent = "Draft email";
-        }, 1200);
-      }
-    });
-    deleteSelectedButton.addEventListener("click", async () => {
-      if (!selectedId) return;
-      const deal = deals.find((item) => item.id === selectedId);
-      if (!deal || !confirm(`Delete ${deal.name}?`)) return;
-      deleteSelectedButton.disabled = true;
-      deleteSelectedButton.textContent = "Deleting...";
-      try {
-        await deleteDealViaApi(selectedId);
-        deals = deals.filter((item) => item.id !== selectedId);
-        selectedId = deals[0]?.id;
-        renderCounts();
-        selectDeal(selectedId);
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        deleteSelectedButton.textContent = "Delete selected";
-        deleteSelectedButton.disabled = !selectedId;
-      }
-    });
-    document.getElementById("clear-web-leads").addEventListener("click", async () => {
-      const count = deals.filter((deal) => ["web", "research"].includes(deal.source)).length;
-      if (!count || !confirm(`Delete ${count} scout leads? Manual, CSV, and image deals will stay.`)) return;
-      const button = document.getElementById("clear-web-leads");
-      button.disabled = true;
-      button.textContent = "Clearing...";
-      try {
-        await clearWebLeadsViaApi();
-        deals = deals.filter((deal) => !["web", "research"].includes(deal.source));
-        selectedId = deals[0]?.id;
-        renderCounts();
-        selectDeal(selectedId);
-        openWebSearchModal();
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        button.disabled = false;
-        button.textContent = "Clear Scout Leads";
-      }
-    });
-    document.getElementById("close-add-deal").addEventListener("click", closeModal);
-    document.getElementById("cancel-add-deal").addEventListener("click", closeModal);
-    document.getElementById("deal-modal").addEventListener("click", (event) => {
-      if (event.target.id === "deal-modal") closeModal();
-    });
-    document.getElementById("open-image-import").addEventListener("click", openImageModal);
-    document.getElementById("close-image-import").addEventListener("click", closeImageModal);
-    document.getElementById("cancel-image-import").addEventListener("click", closeImageModal);
-    document.getElementById("image-modal").addEventListener("click", (event) => {
-      if (event.target.id === "image-modal") closeImageModal();
-    });
-    document.getElementById("open-web-search").addEventListener("click", openWebSearchModal);
-    document.getElementById("close-web-search").addEventListener("click", closeWebSearchModal);
-    document.getElementById("cancel-web-search").addEventListener("click", closeWebSearchModal);
-    document.getElementById("web-search-modal").addEventListener("click", (event) => {
-      if (event.target.id === "web-search-modal") closeWebSearchModal();
-    });
-    document.getElementById("deal-form").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const submitButton = event.currentTarget.querySelector("button[type='submit']");
-      submitButton.disabled = true;
-      submitButton.textContent = "Scoring...";
-      try {
-        const deal = await createDealViaApi(new FormData(event.currentTarget));
-        deals = [deal, ...deals.filter((item) => item.id !== deal.id)];
-        saveUserDeals();
-        renderCounts();
-        resetFilters();
-        event.currentTarget.reset();
-        closeModal();
-        selectDeal(deal.id);
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = "Score Deal";
-      }
-    });
-    document.getElementById("agent-form").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const submitButton = event.currentTarget.querySelector("button[type='submit']");
-      submitButton.disabled = true;
-      submitButton.textContent = "Saving...";
-      try {
-        const search = await createSearchViaApi(new FormData(event.currentTarget));
-        searchProfiles = [search, ...searchProfiles.filter((item) => item.id !== search.id)];
-        event.currentTarget.reset();
-        closeAgentModal();
-        renderAgentPanel();
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = "Save Search";
-      }
-    });
-    document.getElementById("image-form").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const submitButton = event.currentTarget.querySelector("button[type='submit']");
-      submitButton.disabled = true;
-      submitButton.textContent = "Extracting...";
-      try {
-        const deal = await extractImageViaApi(event.currentTarget);
-        deals = [deal, ...deals.filter((item) => item.id !== deal.id)];
-        renderCounts();
-        resetFilters();
-        event.currentTarget.reset();
-        closeImageModal();
-        selectDeal(deal.id);
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = "Extract Deal";
-      }
-    });
-    document.getElementById("web-search-form").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const submitButton = event.currentTarget.querySelector("button[type='submit']");
-      submitButton.disabled = true;
-      submitButton.textContent = "Scraping...";
-      webSearchStatus.style.display = "none";
-      webSearchStatus.innerHTML = "";
-      try {
-        const result = await runWebSearchViaApi(new FormData(event.currentTarget));
-        const importedDeals = result.deals || [];
-        if (!importedDeals.length) {
-          const links = (result.sourceLinks || []).map((link) => `
-            <li><a href="${escapeHtml(link.url)}" target="_blank" rel="noreferrer">${escapeHtml(link.title || link.url)}</a></li>
-          `).join("");
-          webSearchStatus.style.display = "block";
-          webSearchStatus.innerHTML = `
-            <strong>No importable listings found.</strong>
-            <p>${escapeHtml(result.message || "Try a broader location or inspect public sources manually.")}</p>
-            ${links ? `<ul class="source-list">${links}</ul>` : ""}
-          `;
-          return;
-        }
-        deals = [...importedDeals, ...deals.filter((deal) => !importedDeals.some((item) => item.id === deal.id))];
-        renderCounts();
-        resetFilters();
-        closeWebSearchModal();
-        selectDeal(importedDeals[0].id);
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = "Scrape & Import";
-      }
-    });
-
-    async function init() {
-      await loadDealsFromApi();
-      await loadAgentState();
-      renderCounts();
-      selectDeal(selectedId || deals[0]?.id);
-    }
-
-    init();
-  </script>
+    <footer>
+      <div class="footer-mark">Understudy / Private company</div>
+      <div class="footer-meta">Los Angeles, California<br>Privately held.</div>
+    </footer>
+  </main>
 </body>
 </html>
