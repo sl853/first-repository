@@ -1,5 +1,5 @@
 {
-  "provider": "auto",
+  "provider": "ollama",
   "model": "gpt-4o-mini",
   "criticModel": "gpt-4o-mini",
   "temperature": 0.4,
