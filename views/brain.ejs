@@ -10,11 +10,12 @@
 <body class="brain-page">
   <main class="brain-shell">
     <header class="brain-topbar">
-      <div>
+      <div class="brain-topbar-copy">
         <p class="brain-kicker">Understudy / Private Operating Brain</p>
-        <h1>Ask clearly. See what happened. Keep the useful parts.</h1>
+        <h1>A private desk for questions, direction, memory, and next steps.</h1>
+        <p class="brain-subtitle">This should feel like one place to think clearly, see what happened, and keep the useful parts.</p>
       </div>
-      <div class="brain-topbar-meta">
+      <div class="brain-topbar-actions">
         <span class="brain-status-pill brain-status-pill-<%= procedureStatus.tone %>"><%= procedureStatus.label %></span>
         <a href="/">Home</a>
         <form action="/brain/logout" method="post">
@@ -23,188 +24,181 @@
       </div>
     </header>
 
-    <section class="brain-intro-grid">
-      <article class="brain-panel brain-guide">
+    <section class="brain-overview">
+      <article class="brain-panel brain-overview-main">
         <div class="brain-panel-header">
-          <h2>How To Use This</h2>
-          <span>Private workflow</span>
+          <h2>Today</h2>
+          <span>Operating view</span>
         </div>
-        <div class="brain-guide-steps">
+        <p class="brain-overview-lead"><%= procedureStatus.detail %></p>
+        <div class="brain-overview-grid">
           <section>
-            <h3>1. Ask one full question</h3>
-            <p>Write the actual question in one message instead of saying “answer the last thing.” The brain works better when the prompt is self-contained.</p>
+            <h3>What this page is for</h3>
+            <p>Ask one full question, get a structured answer, then decide what should become memory, research, or a real next action.</p>
           </section>
           <section>
-            <h3>2. Read the answer status first</h3>
-            <p>This page now tells you whether the brain answered normally, used a fallback, or got blocked by quota or billing.</p>
-          </section>
-          <section>
-            <h3>3. Save what matters</h3>
-            <p>Use <strong>Remember</strong> for durable notes and <strong>Research</strong> for scout directions. The goal is owned company context, not throwaway chat.</p>
+            <h3>What to do next</h3>
+            <p><%= procedureStatus.nextStep %></p>
           </section>
         </div>
       </article>
 
-      <aside class="brain-panel brain-system">
+      <aside class="brain-panel brain-overview-side">
         <div class="brain-panel-header">
-          <h2>System Status</h2>
+          <h2>System</h2>
           <span>Live</span>
         </div>
-        <dl class="brain-status-list">
+        <dl class="brain-metric-list">
           <div>
             <dt>Result</dt>
-            <dd><strong><%= procedureStatus.label %></strong></dd>
+            <dd><%= procedureStatus.label %></dd>
           </div>
           <div>
-            <dt>What happened</dt>
-            <dd><%= procedureStatus.detail %></dd>
+            <dt>Model path</dt>
+            <dd><%= modelStatus.active %></dd>
           </div>
           <div>
-            <dt>Thinking engine</dt>
-            <dd><%= modelStatus.active %> · <%= modelStatus.detail %></dd>
+            <dt>Model detail</dt>
+            <dd><%= modelStatus.detail %></dd>
           </div>
           <div>
-            <dt>Next step</dt>
-            <dd><%= procedureStatus.nextStep %></dd>
+            <dt>Active tasks</dt>
+            <dd><%= tasks.filter((task) => task.status !== 'done').length %></dd>
+          </div>
+          <div>
+            <dt>Memory notes</dt>
+            <dd><%= (memory.notes || []).length %></dd>
           </div>
         </dl>
       </aside>
     </section>
 
-    <section class="brain-scout-lead">
-      <article class="brain-panel brain-scout-hero">
+    <section class="brain-workbench">
+      <article class="brain-panel brain-compose">
         <div class="brain-panel-header">
-          <h2>Scout Report</h2>
-          <span><%= latestReport ? latestReport.file : 'No report yet' %></span>
+          <h2>Ask The Brain</h2>
+          <span>Primary action</span>
         </div>
-        <% if (latestReport) { %>
-          <div class="brain-scout-hero-grid">
-            <div>
-              <p class="brain-scout-heading"><%= latestReport.heading %></p>
-              <ul class="brain-scout-summary">
-                <% (latestReport.summaryLines || []).forEach((line) => { %>
-                  <li><%= line %></li>
-                <% }) %>
-              </ul>
-            </div>
-            <details class="brain-report brain-report-inline">
-              <summary>Open full report</summary>
-              <pre><%= latestReport.content.slice(0, 1600) %></pre>
-            </details>
-          </div>
-        <% } else { %>
-          <p class="brain-empty">No scout report yet. Once a report lands, the tight summary will show here first.</p>
-        <% } %>
-      </article>
-    </section>
 
-    <section class="brain-command">
-      <form class="brain-form" action="/brain/message" method="post">
         <% if (sent) { %>
-          <p class="brain-form-notice">Message saved and procedure run. Check the status panel first, then read the latest procedure below.</p>
+          <p class="brain-form-notice">Message saved and procedure run. Read the result state first, then review the answer below.</p>
         <% } %>
-        <label>
-          <span>Mode</span>
-          <select name="type">
-            <option value="request">Ask</option>
-            <option value="memory">Remember</option>
-            <option value="research">Research</option>
-          </select>
-          <small>Use Ask for normal questions.</small>
-        </label>
-        <label class="brain-form-message">
-          <span>Message</span>
-          <textarea name="message" rows="3" placeholder="Example: Where are we headed as a company over the next 90 days? Give me one direction, one risk, and one next action." required></textarea>
-          <small>Best results come from one complete question with enough context to stand alone.</small>
-        </label>
-        <button type="submit">Run Procedure</button>
-      </form>
-    </section>
 
-    <section class="brain-primary">
+        <form class="brain-form" action="/brain/message" method="post">
+          <label class="brain-form-field">
+            <span>Mode</span>
+            <select name="type">
+              <option value="request">Ask</option>
+              <option value="memory">Remember</option>
+              <option value="research">Research</option>
+            </select>
+            <small>`Ask` is for normal questions. `Remember` stores durable notes. `Research` points the scout at a lane.</small>
+          </label>
+
+          <label class="brain-form-field brain-form-message">
+            <span>Message</span>
+            <textarea name="message" rows="5" placeholder="Example: Where are we headed as a company over the next 90 days? Give me one direction, one risk, and one next action." required></textarea>
+            <small>Best results come from one complete question with enough context to stand on its own.</small>
+          </label>
+
+          <button type="submit">Run Procedure</button>
+        </form>
+
+        <div class="brain-prompt-list">
+          <p class="brain-prompt-label">Good prompt shapes</p>
+          <ul>
+            <li>What are the top three business directions for Understudy this month, and which one should I actually focus on?</li>
+            <li>Turn this idea into one decision, one experiment, and one thing not to do yet.</li>
+            <li>Save this as memory: Understudy should treat the homepage as the front door and the brain as the private workspace.</li>
+          </ul>
+        </div>
+      </article>
+
       <article class="brain-panel brain-latest">
         <div class="brain-panel-header">
-          <h2>Latest Procedure</h2>
+          <h2>Latest Answer</h2>
           <span><%= latestProcedure ? latestProcedure.file : 'No procedure yet' %></span>
         </div>
+
         <% if (latestProcedure) { %>
-          <div class="brain-procedure-meta">
+          <div class="brain-latest-meta">
             <span class="brain-status-pill brain-status-pill-<%= procedureStatus.tone %>"><%= procedureStatus.label %></span>
-            <span>Mode: <%= latestProcedure.data.mode || 'unknown' %></span>
+            <span class="brain-meta-line">Mode: <%= latestProcedure.data.mode || 'unknown' %></span>
           </div>
+
           <p class="brain-question"><%= latestProcedure.data.question || 'Untitled procedure' %></p>
+
           <div class="brain-answer-grid">
             <section>
-              <h3>CEO</h3>
+              <h3>Direction</h3>
               <p><%= (latestProcedure.data.ceo || latestProcedure.data.ceoAnswer || '').slice(0, 900) %></p>
             </section>
             <section>
-              <h3>Scout</h3>
+              <h3>New Angle</h3>
               <p><%= (latestProcedure.data.scout || '').slice(0, 700) %></p>
             </section>
             <section>
-              <h3>Critic</h3>
+              <h3>Risk Check</h3>
               <p><%= (latestProcedure.data.critic || latestProcedure.data.criticReview || '').slice(0, 700) %></p>
             </section>
             <section>
-              <h3>Synthesis</h3>
+              <h3>Decision</h3>
               <p><%= (latestProcedure.data.synthesis || '').slice(0, 900) %></p>
             </section>
           </div>
         <% } else { %>
-          <p class="brain-empty">Ask the brain once and the response will appear here.</p>
+          <p class="brain-empty">Ask one direct question and the answer will show up here.</p>
+        <% } %>
+      </article>
+    </section>
+
+    <section class="brain-signals">
+      <article class="brain-panel brain-scout-card">
+        <div class="brain-panel-header">
+          <h2>Latest Scout Brief</h2>
+          <span><%= latestReport ? latestReport.file : 'No report yet' %></span>
+        </div>
+
+        <% if (latestReport) { %>
+          <p class="brain-scout-heading"><%= latestReport.heading %></p>
+          <ul class="brain-scout-summary">
+            <% (latestReport.summaryLines || []).forEach((line) => { %>
+              <li><%= line %></li>
+            <% }) %>
+          </ul>
+          <details class="brain-report-detail">
+            <summary>Open full scout brief</summary>
+            <pre><%= latestReport.content.slice(0, 2200) %></pre>
+          </details>
+        <% } else { %>
+          <p class="brain-empty">Once a scout brief lands, the summary will appear here first.</p>
         <% } %>
       </article>
 
-      <aside class="brain-side">
-        <section class="brain-panel">
-          <div class="brain-panel-header">
-            <h2>Status</h2>
-            <span>Live</span>
-          </div>
-          <dl class="brain-status-list">
-            <div>
-              <dt>Procedure</dt>
-              <dd>Runs every time you submit.</dd>
-            </div>
-            <div>
-              <dt>Model</dt>
-              <dd><%= modelStatus.detail %></dd>
-            </div>
-            <div>
-              <dt>Tasks</dt>
-              <dd><%= tasks.filter((task) => task.status !== 'done').length %> active</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section class="brain-panel">
-          <div class="brain-panel-header">
-            <h2>Memory</h2>
-            <span><%= (memory.notes || []).length %> notes</span>
-          </div>
-          <div class="brain-memory">
-            <p><strong><%= memory.company && memory.company.name ? memory.company.name : 'Understudy' %></strong></p>
-            <p><%= memory.company && memory.company.position ? memory.company.position : 'Private parent company.' %></p>
-            <ul>
-              <% (memory.principles || []).slice(-5).forEach((principle) => { %>
-                <li><%= principle %></li>
-              <% }) %>
-            </ul>
-          </div>
-        </section>
+      <aside class="brain-panel brain-memory-card">
+        <div class="brain-panel-header">
+          <h2>Operating Memory</h2>
+          <span><%= memory.company && memory.company.name ? memory.company.name : 'Understudy' %></span>
+        </div>
+        <p class="brain-memory-title"><strong><%= memory.company && memory.company.name ? memory.company.name : 'Understudy' %></strong></p>
+        <p class="brain-memory-copy"><%= memory.company && memory.company.position ? memory.company.position : 'Private parent company.' %></p>
+        <ul class="brain-memory-list">
+          <% (memory.principles || []).slice(-5).forEach((principle) => { %>
+            <li><%= principle %></li>
+          <% }) %>
+        </ul>
       </aside>
     </section>
 
-    <section class="brain-secondary">
-      <article class="brain-panel">
-        <div class="brain-panel-header">
-          <h2>Scout Archive</h2>
+    <section class="brain-library">
+      <details class="brain-library-panel" open>
+        <summary>
+          <span>Scout Archive</span>
           <span><%= reports.length %> recent</span>
-        </div>
+        </summary>
         <div class="brain-report-list">
           <% reports.forEach((report) => { %>
-            <details class="brain-report">
+            <details class="brain-report-item">
               <summary><%= report.heading %></summary>
               <% if ((report.summaryLines || []).length) { %>
                 <ul class="brain-report-bullets">
@@ -217,15 +211,15 @@
             </details>
           <% }) %>
         </div>
-      </article>
+      </details>
 
-      <article class="brain-panel">
-        <div class="brain-panel-header">
-          <h2>State Log</h2>
+      <details class="brain-library-panel">
+        <summary>
+          <span>State Log</span>
           <span>Full history</span>
-        </div>
+        </summary>
         <pre class="brain-state"><%= scrollingState %></pre>
-      </article>
+      </details>
     </section>
   </main>
 </body>
