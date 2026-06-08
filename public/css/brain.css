@@ -81,6 +81,77 @@
   text-transform: uppercase;
 }
 
+.brain-intro-grid {
+  display: grid;
+  gap: 2px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  margin-top: 24px;
+}
+
+.brain-guide-steps,
+.brain-guide-steps section {
+  display: grid;
+  gap: 12px;
+}
+
+.brain-guide-steps {
+  gap: 18px;
+}
+
+.brain-guide-steps section {
+  border-top: 1px solid var(--brain-faint);
+  padding-top: 14px;
+}
+
+.brain-guide-steps section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.brain-guide-steps h3,
+.brain-form small,
+.brain-procedure-meta span,
+.brain-form-notice,
+.brain-status-pill {
+  color: var(--brain-accent);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.brain-guide-steps p {
+  color: var(--brain-muted);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.72;
+  margin: 0;
+}
+
+.brain-status-pill {
+  border: 1px solid var(--brain-faint);
+  display: inline-flex;
+  padding: 10px 12px;
+}
+
+.brain-status-pill-good {
+  background: rgba(114, 156, 121, 0.12);
+  border-color: rgba(114, 156, 121, 0.28);
+  color: #cfe6c5;
+}
+
+.brain-status-pill-warn {
+  background: rgba(196, 168, 130, 0.12);
+  border-color: rgba(196, 168, 130, 0.28);
+  color: #f2d4aa;
+}
+
+.brain-status-pill-neutral {
+  background: rgba(244, 239, 230, 0.05);
+}
+
 .brain-command {
   border-bottom: 1px solid var(--brain-faint);
   padding: 26px 0;
@@ -153,6 +224,14 @@
   grid-template-columns: 180px minmax(0, 1fr) 170px;
 }
 
+.brain-form-notice {
+  background: rgba(244, 239, 230, 0.04);
+  border: 1px solid var(--brain-faint);
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 14px 16px;
+}
+
 .brain-form label {
   display: grid;
   gap: 8px;
@@ -182,6 +261,12 @@
 
 .brain-form textarea::placeholder {
   color: rgba(244, 239, 230, 0.34);
+}
+
+.brain-form small {
+  color: var(--brain-muted);
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .brain-form button {
@@ -240,6 +325,14 @@
   line-height: 1.18;
   margin-bottom: 30px;
   padding-left: 22px;
+}
+
+.brain-procedure-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
 }
 
 .brain-answer-grid {
@@ -361,6 +454,7 @@
   }
 
   .brain-topbar,
+  .brain-intro-grid,
   .brain-form,
   .brain-scout-hero-grid,
   .brain-primary,

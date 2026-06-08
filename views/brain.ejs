@@ -12,16 +12,64 @@
     <header class="brain-topbar">
       <div>
         <p class="brain-kicker">Understudy / Private Operating Brain</p>
-        <h1>Company procedure.</h1>
+        <h1>Ask clearly. See what happened. Keep the useful parts.</h1>
       </div>
       <div class="brain-topbar-meta">
-        <span><%= modelStatus.active %></span>
+        <span class="brain-status-pill brain-status-pill-<%= procedureStatus.tone %>"><%= procedureStatus.label %></span>
         <a href="/">Home</a>
         <form action="/brain/logout" method="post">
           <button type="submit">Log out</button>
         </form>
       </div>
     </header>
+
+    <section class="brain-intro-grid">
+      <article class="brain-panel brain-guide">
+        <div class="brain-panel-header">
+          <h2>How To Use This</h2>
+          <span>Private workflow</span>
+        </div>
+        <div class="brain-guide-steps">
+          <section>
+            <h3>1. Ask one full question</h3>
+            <p>Write the actual question in one message instead of saying “answer the last thing.” The brain works better when the prompt is self-contained.</p>
+          </section>
+          <section>
+            <h3>2. Read the answer status first</h3>
+            <p>This page now tells you whether the brain answered normally, used a fallback, or got blocked by quota or billing.</p>
+          </section>
+          <section>
+            <h3>3. Save what matters</h3>
+            <p>Use <strong>Remember</strong> for durable notes and <strong>Research</strong> for scout directions. The goal is owned company context, not throwaway chat.</p>
+          </section>
+        </div>
+      </article>
+
+      <aside class="brain-panel brain-system">
+        <div class="brain-panel-header">
+          <h2>System Status</h2>
+          <span>Live</span>
+        </div>
+        <dl class="brain-status-list">
+          <div>
+            <dt>Result</dt>
+            <dd><strong><%= procedureStatus.label %></strong></dd>
+          </div>
+          <div>
+            <dt>What happened</dt>
+            <dd><%= procedureStatus.detail %></dd>
+          </div>
+          <div>
+            <dt>Thinking engine</dt>
+            <dd><%= modelStatus.active %> · <%= modelStatus.detail %></dd>
+          </div>
+          <div>
+            <dt>Next step</dt>
+            <dd><%= procedureStatus.nextStep %></dd>
+          </div>
+        </dl>
+      </aside>
+    </section>
 
     <section class="brain-scout-lead">
       <article class="brain-panel brain-scout-hero">
@@ -52,6 +100,9 @@
 
     <section class="brain-command">
       <form class="brain-form" action="/brain/message" method="post">
+        <% if (sent) { %>
+          <p class="brain-form-notice">Message saved and procedure run. Check the status panel first, then read the latest procedure below.</p>
+        <% } %>
         <label>
           <span>Mode</span>
           <select name="type">
@@ -59,10 +110,12 @@
             <option value="memory">Remember</option>
             <option value="research">Research</option>
           </select>
+          <small>Use Ask for normal questions.</small>
         </label>
         <label class="brain-form-message">
           <span>Message</span>
-          <textarea name="message" rows="3" placeholder="Ask the CEO, save a memory, or give the Scout a research direction." required></textarea>
+          <textarea name="message" rows="3" placeholder="Example: Where are we headed as a company over the next 90 days? Give me one direction, one risk, and one next action." required></textarea>
+          <small>Best results come from one complete question with enough context to stand alone.</small>
         </label>
         <button type="submit">Run Procedure</button>
       </form>
@@ -75,6 +128,10 @@
           <span><%= latestProcedure ? latestProcedure.file : 'No procedure yet' %></span>
         </div>
         <% if (latestProcedure) { %>
+          <div class="brain-procedure-meta">
+            <span class="brain-status-pill brain-status-pill-<%= procedureStatus.tone %>"><%= procedureStatus.label %></span>
+            <span>Mode: <%= latestProcedure.data.mode || 'unknown' %></span>
+          </div>
           <p class="brain-question"><%= latestProcedure.data.question || 'Untitled procedure' %></p>
           <div class="brain-answer-grid">
             <section>
@@ -165,7 +222,7 @@
       <article class="brain-panel">
         <div class="brain-panel-header">
           <h2>State Log</h2>
-          <span>Raw record</span>
+          <span>Full history</span>
         </div>
         <pre class="brain-state"><%= scrollingState %></pre>
       </article>

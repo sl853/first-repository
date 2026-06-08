@@ -169,10 +169,11 @@ app.post('/brain/logout', (_req, res) => {
   res.redirect('/brain/login');
 });
 
-app.get('/brain', requirePrivateAuth, (_req, res) => {
+app.get('/brain', requirePrivateAuth, (req, res) => {
   res.render('brain', {
     ...buildLandingContext(),
     ...buildBrainContext(),
+    sent: req.query.sent === '1',
   });
 });
 
