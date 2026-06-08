@@ -1,0 +1,8 @@
+{
+  "date": "2026-05-27T21:20:23.924Z",
+  "type": "research",
+  "message": "Choose Understudy's first hosting setup. Pick one of: local Ollama on this machine, self-hosted 4090 box, or cloud/API provider. Return only: first choice, later upgrade, main tradeoff, and next step in this repo.",
+  "status": "processed",
+  "processedAt": "2026-05-27T21:26:04.724Z",
+  "conversationPath": "conversations\\2026-05-27T21-26-04-724Z-site-procedure.json"
+}

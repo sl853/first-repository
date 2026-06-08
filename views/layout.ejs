@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Understudy</title>
+  <meta name="description" content="Understudy is the umbrella for the businesses, projects, and systems Spencer is building.">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap">
+  <%- themeCSS %>
+</head>
+<body>
+  <%- include('partials/hero') %>
+  <%- include('partials/manifesto') %>
+  <%- include('partials/structure') %>
+  <%- include('partials/portfolio') %>
+  <%- include('partials/scout-report') %>
+  <%- include('partials/philosophy') %>
+  <%- include('partials/footer') %>
+  <script>
+    (function () {
+      var section = document.querySelector('.scout-report');
+      if (!section) return;
+
+      var currentFile = section.getAttribute('data-report-file') || '';
+      var currentUpdatedAt = section.getAttribute('data-report-updated-at') || '';
+      var statusEl = section.querySelector('[data-report-status]');
+
+      async function checkForReportUpdate() {
+        try {
+          var response = await fetch('/api/report-status', { cache: 'no-store' });
+          if (!response.ok) return;
+          var next = await response.json();
+
+          if (!next || !next.exists) {
+            if (statusEl) statusEl.textContent = 'Waiting for the first scout report.';
+            return;
+          }
+
+          var changed = next.file !== currentFile || next.updatedAt !== currentUpdatedAt;
+          if (changed) {
+            if (statusEl) statusEl.textContent = 'New scout brief landed. Refreshing...';
+            window.location.reload();
+            return;
+          }
+
+          if (statusEl) statusEl.textContent = 'Watching for the next report update.';
+        } catch (_error) {
+          if (statusEl) statusEl.textContent = 'Scout refresh check paused. Reload to retry.';
+        }
+      }
+
+      window.setInterval(checkForReportUpdate, 15000);
+    })();
+  </script>
+  <%- analyticsSnippet %>
+</body>
+</html>

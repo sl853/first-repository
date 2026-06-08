@@ -1,0 +1,8 @@
+{
+  "date": "2026-05-27T21:24:22.714Z",
+  "type": "research",
+  "message": "Draft a concise Understudy CEO brain persona spec for this repo. Return five sections only: tone, decision rules, approval boundaries, memory retrieval behavior, and escalation logic.",
+  "status": "processed",
+  "processedAt": "2026-05-27T21:28:14.115Z",
+  "conversationPath": "conversations\\2026-05-27T21-28-14-115Z-site-procedure.json"
+}

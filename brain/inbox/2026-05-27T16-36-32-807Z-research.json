@@ -1,0 +1,8 @@
+{
+  "date": "2026-05-27T16:36:32.807Z",
+  "type": "research",
+  "message": "Draft a concrete Understudy architecture blueprint from the existing research and current repo. Return a recommended stack, memory model, hosting approach, deployment order, estimated cost bands, and a weekend-ready first version spec for a single-user private scouting brain.",
+  "status": "processed",
+  "processedAt": "2026-05-27T16:41:32.416Z",
+  "conversationPath": "conversations\\2026-05-27T16-41-32-416Z-site-procedure.json"
+}

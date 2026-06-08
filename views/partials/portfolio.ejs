@@ -1,0 +1,18 @@
+<section class="portfolio">
+  <div class="portfolio-inner">
+    <div class="portfolio-header">
+      <div class="portfolio-label"><%= siteContent.ventures.label %></div>
+      <h2 class="portfolio-title"><%= siteContent.ventures.title %></h2>
+    </div>
+    <div class="portfolio-grid">
+      <% siteContent.ventures.items.forEach((item) => { %>
+        <article class="portfolio-item">
+          <div class="item-number"><%= item.number %></div>
+          <h3 class="item-name"><%= item.name %></h3>
+          <div class="item-status"><%= item.status %></div>
+          <p class="item-description"><%= item.description %></p>
+        </article>
+      <% }) %>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "title": "Define the first working version of the Understudy AI CEO",
+    "owner": "ceo",
+    "risk": "medium",
+    "status": "open",
+    "requiresApproval": false,
+    "createdAt": "2026-05-24"
+  },
+  {
+    "id": 2,
+    "title": "Research simplest hybrid architecture for model, memory, and tool access",
+    "owner": "researcher",
+    "risk": "low",
+    "status": "open",
+    "requiresApproval": false,
+    "createdAt": "2026-05-24"
+  },
+  {
+    "id": 3,
+    "title": "Host the Understudy landing page later this week",
+    "owner": "operator",
+    "risk": "low",
+    "status": "open",
+    "requiresApproval": false,
+    "createdAt": "2026-05-24"
+  }
+]

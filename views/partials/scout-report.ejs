@@ -1,0 +1,42 @@
+<section class="scout-report" data-report-file="<%= latestReportStatus && latestReportStatus.file ? latestReportStatus.file : '' %>" data-report-updated-at="<%= latestReportStatus && latestReportStatus.updatedAt ? latestReportStatus.updatedAt : '' %>">
+  <div class="scout-report-inner">
+    <div class="scout-report-header">
+      <div>
+        <div class="scout-report-label">04 - Latest Scout Brief</div>
+        <h2 class="scout-report-title">The page can follow the research as it lands.</h2>
+      </div>
+      <p class="scout-report-status" data-report-status>
+        <% if (latestReportStatus && latestReportStatus.exists) { %>
+          Watching for the next report update.
+        <% } else { %>
+          Waiting for the first scout report.
+        <% } %>
+      </p>
+    </div>
+
+    <% if (latestReport) { %>
+      <div class="scout-report-card">
+        <div class="scout-report-meta">
+          <span><%= latestReport.file %></span>
+          <a href="/brain">Open archive</a>
+        </div>
+        <h3 class="scout-report-heading"><%= latestReport.heading %></h3>
+        <% if ((latestReport.summaryLines || []).length) { %>
+          <ul class="scout-report-list">
+            <% latestReport.summaryLines.forEach((line) => { %>
+              <li><%= line %></li>
+            <% }) %>
+          </ul>
+        <% } %>
+        <details class="scout-report-details">
+          <summary>Read current brief</summary>
+          <pre><%= latestReport.content.slice(0, 1800) %></pre>
+        </details>
+      </div>
+    <% } else { %>
+      <div class="scout-report-card scout-report-card--empty">
+        <p>No scout brief yet. Once the report is written, this section will populate and the page will refresh itself.</p>
+      </div>
+    <% } %>
+  </div>
+</section>

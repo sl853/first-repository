@@ -1,0 +1,8 @@
+{
+  "date": "2026-05-27T21:12:59.545Z",
+  "type": "research",
+  "message": "For Understudy, choose the first memory stack only. Compare flat files, pgvector in Postgres, Qdrant, and graph memory. Return: best first choice, what to defer, one reason for each, and one next implementation step in this repo.",
+  "status": "processed",
+  "processedAt": "2026-05-27T21:18:17.242Z",
+  "conversationPath": "conversations\\2026-05-27T21-18-17-242Z-site-procedure.json"
+}

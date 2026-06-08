@@ -1,0 +1,11 @@
+<section class="manifesto">
+  <div class="manifesto-inner">
+    <div class="manifesto-number"><%= siteContent.manifesto.number %></div>
+    <div class="manifesto-body">
+      <h2><%- siteContent.manifesto.heading.replace(/\n/g, '<br>') %></h2>
+      <% siteContent.manifesto.paragraphs.forEach((paragraph) => { %>
+        <p><%= paragraph %></p>
+      <% }) %>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,8 @@
+{
+  "date": "2026-05-27T21:12:03.154Z",
+  "type": "research",
+  "message": "Research the best memory systems direction for Understudy right now. Compare simple file memory, pgvector, Qdrant, Mem0 style memory, and graph-style entity memory for a single-user private scouting brain. Recommend what to use first, what to defer, and why.",
+  "status": "processed",
+  "processedAt": "2026-05-27T21:17:50.938Z",
+  "conversationPath": "conversations\\2026-05-27T21-17-50-938Z-site-procedure.json"
+}

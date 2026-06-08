@@ -1,0 +1,12 @@
+<section class="philosophy">
+  <div class="philosophy-inner">
+    <div class="philosophy-number"><%= siteContent.philosophy.number %></div>
+    <div class="philosophy-content">
+      <blockquote><%= siteContent.philosophy.quote %></blockquote>
+      <% siteContent.philosophy.paragraphs.forEach((paragraph) => { %>
+        <p class="philosophy-response"><%= paragraph %></p>
+      <% }) %>
+      <div class="philosophy-attr"><%= siteContent.philosophy.attribution %></div>
+    </div>
+  </div>
+</section>

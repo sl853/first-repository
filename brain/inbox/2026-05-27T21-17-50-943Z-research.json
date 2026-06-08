@@ -1,0 +1,8 @@
+{
+  "date": "2026-05-27T21:17:50.943Z",
+  "type": "research",
+  "message": "Research the best inference and hosting direction for Understudy right now. Compare local Ollama on a personal machine, RTX 4090 style self-hosting, and cloud/API options for a single-user agentic scouting brain. Recommend the practical first setup for this repo and what to upgrade later.",
+  "status": "processed",
+  "processedAt": "2026-05-27T21:23:07.712Z",
+  "conversationPath": "conversations\\2026-05-27T21-23-07-712Z-site-procedure.json"
+}

@@ -1,0 +1,8 @@
+{
+  "date": "2026-05-27T21:18:17.247Z",
+  "type": "research",
+  "message": "For Understudy, choose the first hosting and inference setup only. Compare local Ollama on the current machine, a self-hosted 4090 box, and cloud/API providers. Return: best first choice, later upgrade path, main tradeoff, and one next implementation step in this repo.",
+  "status": "processed",
+  "processedAt": "2026-05-27T21:24:22.712Z",
+  "conversationPath": "conversations\\2026-05-27T21-24-22-712Z-site-procedure.json"
+}

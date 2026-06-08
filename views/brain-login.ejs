@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Understudy Private Login</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap">
+  <%- themeCSS %>
+  <style>
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(196, 168, 130, 0.16), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.36), rgba(255,255,255,0.08));
+    }
+
+    .login-shell {
+      width: min(460px, 100%);
+      border: 1px solid rgba(28, 25, 23, 0.12);
+      background: rgba(255,255,255,0.62);
+      backdrop-filter: blur(8px);
+      padding: 34px 30px;
+    }
+
+    .login-kicker {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #9C7F60;
+      margin-bottom: 18px;
+    }
+
+    .login-shell h1 {
+      margin: 0 0 14px;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 44px;
+      font-weight: 400;
+      line-height: 1;
+      color: #1C1917;
+    }
+
+    .login-shell p {
+      margin: 0 0 24px;
+      color: #78716C;
+      line-height: 1.6;
+    }
+
+    .login-form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .login-form label {
+      display: grid;
+      gap: 8px;
+      color: #1C1917;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .login-form input {
+      border: 1px solid rgba(28, 25, 23, 0.14);
+      background: rgba(255,255,255,0.9);
+      padding: 14px 12px;
+      font: inherit;
+    }
+
+    .login-form button {
+      border: 0;
+      background: #1C1917;
+      color: #F4EFE6;
+      padding: 14px 16px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .login-error {
+      border-left: 2px solid #9C7F60;
+      background: rgba(156, 127, 96, 0.1);
+      color: #1C1917;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+
+    .login-home {
+      display: inline-block;
+      margin-top: 18px;
+      color: #1C1917;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <main class="login-shell">
+    <div class="login-kicker">Understudy / Private Access</div>
+    <h1>Enter the private site.</h1>
+    <p>Use one password to reach the brain, reports, and operating context.</p>
+    <% if (error) { %>
+      <div class="login-error">That password did not match. Try again.</div>
+    <% } %>
+    <form class="login-form" action="/brain/login" method="post">
+      <input type="hidden" name="next" value="<%= next %>">
+      <label>
+        <span>Password</span>
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit">Enter Understudy</button>
+    </form>
+    <a class="login-home" href="/">Back to homepage</a>
+  </main>
+</body>
+</html>

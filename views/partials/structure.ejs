@@ -1,0 +1,16 @@
+<section class="structure">
+  <div class="structure-inner">
+    <div class="structure-header">
+      <div class="structure-label"><%= siteContent.structure.label %></div>
+      <h2 class="structure-title"><%= siteContent.structure.title %></h2>
+    </div>
+    <div class="structure-grid">
+      <% siteContent.structure.items.forEach((item) => { %>
+        <article class="structure-card">
+          <h3><%= item.name %></h3>
+          <p><%= item.description %></p>
+        </article>
+      <% }) %>
+    </div>
+  </div>
+</section>

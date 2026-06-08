@@ -1,0 +1,8 @@
+{
+  "date": "2026-05-27T16:41:32.423Z",
+  "type": "research",
+  "message": "Design the Understudy CEO agent system prompt and persona framework for this repo. Include tone, decision rules, approval boundaries, memory retrieval behavior, research posture, and escalation logic for a single-user private scouting brain.",
+  "status": "processed",
+  "processedAt": "2026-05-27T21:12:03.090Z",
+  "conversationPath": "conversations\\2026-05-27T21-12-03-090Z-site-procedure.json"
+}

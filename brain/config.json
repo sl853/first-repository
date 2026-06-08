@@ -1,0 +1,11 @@
+{
+  "provider": "ollama",
+  "model": "gpt-4o-mini",
+  "criticModel": "gpt-4o-mini",
+  "temperature": 0.4,
+  "ollama": {
+    "baseUrl": "http://127.0.0.1:11434",
+    "model": "llama3.2:3b",
+    "criticModel": "llama3.2:3b"
+  }
+}

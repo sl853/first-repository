@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Understudy Brain</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap">
+  <%- themeCSS %>
+</head>
+<body class="brain-page">
+  <main class="brain-shell">
+    <header class="brain-topbar">
+      <div>
+        <p class="brain-kicker">Understudy / Private Operating Brain</p>
+        <h1>Company procedure.</h1>
+      </div>
+      <div class="brain-topbar-meta">
+        <span><%= modelStatus.active %></span>
+        <a href="/">Home</a>
+        <form action="/brain/logout" method="post">
+          <button type="submit">Log out</button>
+        </form>
+      </div>
+    </header>
+
+    <section class="brain-scout-lead">
+      <article class="brain-panel brain-scout-hero">
+        <div class="brain-panel-header">
+          <h2>Scout Report</h2>
+          <span><%= latestReport ? latestReport.file : 'No report yet' %></span>
+        </div>
+        <% if (latestReport) { %>
+          <div class="brain-scout-hero-grid">
+            <div>
+              <p class="brain-scout-heading"><%= latestReport.heading %></p>
+              <ul class="brain-scout-summary">
+                <% (latestReport.summaryLines || []).forEach((line) => { %>
+                  <li><%= line %></li>
+                <% }) %>
+              </ul>
+            </div>
+            <details class="brain-report brain-report-inline">
+              <summary>Open full report</summary>
+              <pre><%= latestReport.content.slice(0, 1600) %></pre>
+            </details>
+          </div>
+        <% } else { %>
+          <p class="brain-empty">No scout report yet. Once a report lands, the tight summary will show here first.</p>
+        <% } %>
+      </article>
+    </section>
+
+    <section class="brain-command">
+      <form class="brain-form" action="/brain/message" method="post">
+        <label>
+          <span>Mode</span>
+          <select name="type">
+            <option value="request">Ask</option>
+            <option value="memory">Remember</option>
+            <option value="research">Research</option>
+          </select>
+        </label>
+        <label class="brain-form-message">
+          <span>Message</span>
+          <textarea name="message" rows="3" placeholder="Ask the CEO, save a memory, or give the Scout a research direction." required></textarea>
+        </label>
+        <button type="submit">Run Procedure</button>
+      </form>
+    </section>
+
+    <section class="brain-primary">
+      <article class="brain-panel brain-latest">
+        <div class="brain-panel-header">
+          <h2>Latest Procedure</h2>
+          <span><%= latestProcedure ? latestProcedure.file : 'No procedure yet' %></span>
+        </div>
+        <% if (latestProcedure) { %>
+          <p class="brain-question"><%= latestProcedure.data.question || 'Untitled procedure' %></p>
+          <div class="brain-answer-grid">
+            <section>
+              <h3>CEO</h3>
+              <p><%= (latestProcedure.data.ceo || latestProcedure.data.ceoAnswer || '').slice(0, 900) %></p>
+            </section>
+            <section>
+              <h3>Scout</h3>
+              <p><%= (latestProcedure.data.scout || '').slice(0, 700) %></p>
+            </section>
+            <section>
+              <h3>Critic</h3>
+              <p><%= (latestProcedure.data.critic || latestProcedure.data.criticReview || '').slice(0, 700) %></p>
+            </section>
+            <section>
+              <h3>Synthesis</h3>
+              <p><%= (latestProcedure.data.synthesis || '').slice(0, 900) %></p>
+            </section>
+          </div>
+        <% } else { %>
+          <p class="brain-empty">Ask the brain once and the response will appear here.</p>
+        <% } %>
+      </article>
+
+      <aside class="brain-side">
+        <section class="brain-panel">
+          <div class="brain-panel-header">
+            <h2>Status</h2>
+            <span>Live</span>
+          </div>
+          <dl class="brain-status-list">
+            <div>
+              <dt>Procedure</dt>
+              <dd>Runs every time you submit.</dd>
+            </div>
+            <div>
+              <dt>Model</dt>
+              <dd><%= modelStatus.detail %></dd>
+            </div>
+            <div>
+              <dt>Tasks</dt>
+              <dd><%= tasks.filter((task) => task.status !== 'done').length %> active</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="brain-panel">
+          <div class="brain-panel-header">
+            <h2>Memory</h2>
+            <span><%= (memory.notes || []).length %> notes</span>
+          </div>
+          <div class="brain-memory">
+            <p><strong><%= memory.company && memory.company.name ? memory.company.name : 'Understudy' %></strong></p>
+            <p><%= memory.company && memory.company.position ? memory.company.position : 'Private parent company.' %></p>
+            <ul>
+              <% (memory.principles || []).slice(-5).forEach((principle) => { %>
+                <li><%= principle %></li>
+              <% }) %>
+            </ul>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="brain-secondary">
+      <article class="brain-panel">
+        <div class="brain-panel-header">
+          <h2>Scout Archive</h2>
+          <span><%= reports.length %> recent</span>
+        </div>
+        <div class="brain-report-list">
+          <% reports.forEach((report) => { %>
+            <details class="brain-report">
+              <summary><%= report.heading %></summary>
+              <% if ((report.summaryLines || []).length) { %>
+                <ul class="brain-report-bullets">
+                  <% report.summaryLines.forEach((line) => { %>
+                    <li><%= line %></li>
+                  <% }) %>
+                </ul>
+              <% } %>
+              <pre><%= report.content.slice(0, 1600) %></pre>
+            </details>
+          <% }) %>
+        </div>
+      </article>
+
+      <article class="brain-panel">
+        <div class="brain-panel-header">
+          <h2>State Log</h2>
+          <span>Raw record</span>
+        </div>
+        <pre class="brain-state"><%= scrollingState %></pre>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
